@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "eLb-3JXx3raQIsEzh0Loj"
+uri = "file://gachapull_project.tar.gz"
+type = "unspecified"
+title = "GachaPull - Complete Project (Code + Database + Docs)"
