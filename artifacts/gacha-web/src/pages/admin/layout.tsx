@@ -11,6 +11,7 @@ import {
   Coins,
   ShieldAlert,
   ChevronRight,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/transactions", label: "Transactions", icon: Receipt },
   { href: "/admin/coin-packages", label: "Coin Packages", icon: Coins },
+  { href: "/admin/physical-requests", label: "Physical Requests", icon: Truck },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

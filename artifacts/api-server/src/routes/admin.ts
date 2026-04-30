@@ -1,10 +1,9 @@
 import { Router } from "express";
-import { db, usersTable, userCoinsTable, paymentOrdersTable, gachaPullsTable, cardsTable, packsTable, coinPackagesTable, paymentSettingsTable } from "@workspace/db";
+import { db, usersTable, userCoinsTable, paymentOrdersTable, gachaPullsTable, cardsTable, packsTable, coinPackagesTable, paymentSettingsTable, physicalCardRequestsTable } from "@workspace/db";
 import { eq, desc, sql, ilike, and } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 import { ListAdminUsersQueryParams, ListAdminTransactionsQueryParams, CreateAdminCoinPackageBody } from "@workspace/api-zod";
 import { formatCard } from "./cards";
-
 const router = Router();
 
 // STATS
@@ -298,6 +297,86 @@ router.delete("/admin/coin-packages/:packageId", requireAdmin, async (req, res) 
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to delete package" });
+  }
+});
+
+// PHYSICAL CARD REQUESTS
+router.get("/admin/physical-requests", requireAdmin, async (req, res) => {
+  const status = req.query.status as string | undefined;
+  const page = Math.max(1, parseInt(String(req.query.page || "1")));
+  const limit = Math.min(50, parseInt(String(req.query.limit || "20")));
+  const offset = (page - 1) * limit;
+
+  try {
+    let query = db.select({ request: physicalCardRequestsTable, card: cardsTable, user: usersTable })
+      .from(physicalCardRequestsTable)
+      .innerJoin(cardsTable, eq(physicalCardRequestsTable.cardId, cardsTable.id))
+      .innerJoin(usersTable, eq(physicalCardRequestsTable.userId, usersTable.id))
+      .orderBy(desc(physicalCardRequestsTable.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const items = await query;
+    const filtered = status ? items.filter(i => i.request.status === status) : items;
+
+    const [{ total }] = await db.select({ total: sql<number>`count(*)::int` }).from(physicalCardRequestsTable);
+
+    res.json({
+      requests: filtered.map(i => ({
+        id: i.request.id,
+        user: { id: i.user.id, username: i.user.username, email: i.user.email },
+        card: formatCard(i.card),
+        status: i.request.status,
+        fullName: i.request.fullName,
+        phone: i.request.phone,
+        address: i.request.address,
+        city: i.request.city,
+        province: i.request.province,
+        postalCode: i.request.postalCode,
+        country: i.request.country,
+        trackingNumber: i.request.trackingNumber,
+        adminNotes: i.request.adminNotes,
+        createdAt: i.request.createdAt.toISOString(),
+        updatedAt: i.request.updatedAt.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to fetch physical requests" });
+  }
+});
+
+const VALID_PHYSICAL_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"] as const;
+type PhysicalStatus = typeof VALID_PHYSICAL_STATUSES[number];
+
+router.put("/admin/physical-requests/:requestId", requireAdmin, async (req, res) => {
+  const requestId = parseInt(req.params.requestId);
+  if (isNaN(requestId)) { res.status(400).json({ error: "Invalid request ID" }); return; }
+
+  const { status, trackingNumber, adminNotes } = req.body as { status?: string; trackingNumber?: string; adminNotes?: string };
+  if (status && !VALID_PHYSICAL_STATUSES.includes(status as PhysicalStatus)) {
+    res.status(400).json({ error: "Invalid status value" }); return;
+  }
+
+  try {
+    const [existing] = await db.select().from(physicalCardRequestsTable).where(eq(physicalCardRequestsTable.id, requestId)).limit(1);
+    if (!existing) { res.status(404).json({ error: "Request not found" }); return; }
+
+    const updates: Partial<typeof physicalCardRequestsTable.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+    if (status) updates.status = status as PhysicalStatus;
+    if (trackingNumber !== undefined) updates.trackingNumber = trackingNumber;
+    if (adminNotes !== undefined) updates.adminNotes = adminNotes;
+
+    const [updated] = await db.update(physicalCardRequestsTable).set(updates).where(eq(physicalCardRequestsTable.id, requestId)).returning();
+    res.json({ id: updated.id, status: updated.status, trackingNumber: updated.trackingNumber, adminNotes: updated.adminNotes });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to update request" });
   }
 });
 

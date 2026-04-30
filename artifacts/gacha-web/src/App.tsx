@@ -23,6 +23,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
 import AdminSettings from "@/pages/admin/settings";
 import AdminCoinPackages from "@/pages/admin/coin-packages";
+import AdminPhysicalRequests from "@/pages/admin/physical-requests";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +74,9 @@ function Router() {
         <AdminLayout>
           <AdminCoinPackages />
         </AdminLayout>
+      </Route>
+      <Route path="/admin/physical-requests">
+        <AdminPhysicalRequests />
       </Route>
       <Route path="/admin/settings">
         <AdminLayout>
