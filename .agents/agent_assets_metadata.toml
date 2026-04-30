@@ -6,3 +6,9 @@ id = "eLb-3JXx3raQIsEzh0Loj"
 uri = "file://gachapull_project.tar.gz"
 type = "unspecified"
 title = "GachaPull - Complete Project (Code + Database + Docs)"
+
+[[outputs]]
+id = "EXV10cqmlpyMFNNZ8_ekw"
+uri = "file://gachapull_source.zip"
+type = "unspecified"
+title = "GachaPull - Source Code + Database + Dokumentasi (0.4 MB)"
