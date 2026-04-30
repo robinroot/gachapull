@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "GachaPull - Pokemon & One Piece"
+version = "1.0.0"
+id = "artifacts/gacha-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19050
+
+[services.development]
+run = "pnpm --filter @workspace/gacha-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/gacha-web", "run", "build" ]
+publicDir = "artifacts/gacha-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19050"
+BASE_PATH = "/"

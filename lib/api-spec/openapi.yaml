@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: GachaPull - Pokemon & One Piece Gacha API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: cards
+  - name: packs
+  - name: gacha
+  - name: collection
+  - name: wallet
+  - name: payments
+  - name: leaderboard
+  - name: dashboard
+  - name: admin
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,884 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # CARDS
+  /cards:
+    get:
+      operationId: listCards
+      tags: [cards]
+      summary: List all cards
+      parameters:
+        - in: query
+          name: franchise
+          schema:
+            type: string
+            enum: [pokemon, onepiece, all]
+        - in: query
+          name: rarity
+          schema:
+            type: string
+            enum: [common, rare, super_rare, ultra_rare, legendary]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Cards list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardListResponse"
+    post:
+      operationId: createCard
+      tags: [cards]
+      summary: Create a card (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardBody"
+      responses:
+        "201":
+          description: Created card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+
+  /cards/featured:
+    get:
+      operationId: getFeaturedCards
+      tags: [cards]
+      summary: Get featured/popular cards
+      responses:
+        "200":
+          description: Featured cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+
+  /cards/{cardId}:
+    get:
+      operationId: getCard
+      tags: [cards]
+      summary: Get card detail
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+    put:
+      operationId: updateCard
+      tags: [cards]
+      summary: Update card (admin)
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardBody"
+      responses:
+        "200":
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+    delete:
+      operationId: deleteCard
+      tags: [cards]
+      summary: Delete card (admin)
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # PACKS
+  /packs:
+    get:
+      operationId: listPacks
+      tags: [packs]
+      summary: List all packs
+      parameters:
+        - in: query
+          name: franchise
+          schema:
+            type: string
+            enum: [pokemon, onepiece, all]
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Packs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pack"
+    post:
+      operationId: createPack
+      tags: [packs]
+      summary: Create a pack (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePackBody"
+      responses:
+        "201":
+          description: Created pack
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pack"
+
+  /packs/featured:
+    get:
+      operationId: getFeaturedPacks
+      tags: [packs]
+      summary: Get featured packs
+      responses:
+        "200":
+          description: Featured packs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pack"
+
+  /packs/{packId}:
+    get:
+      operationId: getPack
+      tags: [packs]
+      summary: Get pack detail with card pool
+      parameters:
+        - in: path
+          name: packId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pack with card pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackDetail"
+    put:
+      operationId: updatePack
+      tags: [packs]
+      summary: Update pack (admin)
+      parameters:
+        - in: path
+          name: packId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePackBody"
+      responses:
+        "200":
+          description: Updated pack
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pack"
+    delete:
+      operationId: deletePack
+      tags: [packs]
+      summary: Delete pack (admin)
+      parameters:
+        - in: path
+          name: packId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /packs/{packId}/cards:
+    post:
+      operationId: addCardToPack
+      tags: [packs]
+      summary: Add card to pack pool (admin)
+      parameters:
+        - in: path
+          name: packId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCardToPackBody"
+      responses:
+        "201":
+          description: Card added to pack
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+    delete:
+      operationId: removeCardFromPack
+      tags: [packs]
+      summary: Remove card from pack pool (admin)
+      parameters:
+        - in: path
+          name: packId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cardId]
+              properties:
+                cardId:
+                  type: integer
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # GACHA
+  /gacha/pull:
+    post:
+      operationId: gachaPull
+      tags: [gacha]
+      summary: Pull from a pack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GachaPullBody"
+      responses:
+        "200":
+          description: Pull result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GachaPullResult"
+        "400":
+          description: Insufficient coins or pack unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /gacha/history:
+    get:
+      operationId: getGachaHistory
+      tags: [gacha]
+      summary: Get my pull history
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Pull history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GachaHistoryResponse"
+
+  # COLLECTION
+  /collection:
+    get:
+      operationId: getCollection
+      tags: [collection]
+      summary: Get my card collection
+      parameters:
+        - in: query
+          name: franchise
+          schema:
+            type: string
+            enum: [pokemon, onepiece, all]
+      responses:
+        "200":
+          description: My collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollectionItem"
+
+  /collection/stats:
+    get:
+      operationId: getCollectionStats
+      tags: [collection]
+      summary: Get my collection summary stats
+      responses:
+        "200":
+          description: Collection stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionStats"
+
+  # WALLET
+  /wallet:
+    get:
+      operationId: getWallet
+      tags: [wallet]
+      summary: Get my wallet balance
+      responses:
+        "200":
+          description: Wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+
+  /wallet/transactions:
+    get:
+      operationId: getWalletTransactions
+      tags: [wallet]
+      summary: Get coin transaction history
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoinTransactionListResponse"
+
+  # PAYMENTS
+  /payments/packages:
+    get:
+      operationId: getCoinPackages
+      tags: [payments]
+      summary: Get available coin packages
+      responses:
+        "200":
+          description: Coin packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CoinPackage"
+
+  /payments/stripe/create-session:
+    post:
+      operationId: createStripeSession
+      tags: [payments]
+      summary: Create Stripe checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentBody"
+      responses:
+        "200":
+          description: Stripe session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeSessionResponse"
+
+  /payments/stripe/webhook:
+    post:
+      operationId: stripeWebhook
+      tags: [payments]
+      summary: Stripe webhook handler
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /payments/midtrans/create:
+    post:
+      operationId: createMidtransPayment
+      tags: [payments]
+      summary: Create Midtrans payment (QRIS, bank transfer, e-wallet)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentBody"
+      responses:
+        "200":
+          description: Midtrans payment token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MidtransPaymentResponse"
+
+  /payments/midtrans/webhook:
+    post:
+      operationId: midtransWebhook
+      tags: [payments]
+      summary: Midtrans notification webhook
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /payments/usdt/create:
+    post:
+      operationId: createUsdtPayment
+      tags: [payments]
+      summary: Create USDT payment request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentBody"
+      responses:
+        "200":
+          description: USDT payment address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsdtPaymentResponse"
+
+  /payments/history:
+    get:
+      operationId: getPaymentHistory
+      tags: [payments]
+      summary: Get my payment history
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentHistoryResponse"
+
+  # LEADERBOARD
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get top spenders leaderboard
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  # DASHBOARD
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get user dashboard summary
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  # ADMIN
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Admin dashboard stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users (admin)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserListResponse"
+
+  /admin/users/{userId}:
+    get:
+      operationId: getAdminUser
+      tags: [admin]
+      summary: Get user detail (admin)
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+    put:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Update user (admin)
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/transactions:
+    get:
+      operationId: listAdminTransactions
+      tags: [admin]
+      summary: List all payment transactions (admin)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+      responses:
+        "200":
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTransactionListResponse"
+
+  /admin/settings:
+    get:
+      operationId: getAdminSettings
+      tags: [admin]
+      summary: Get payment gateway settings (admin)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettings"
+    put:
+      operationId: updateAdminSettings
+      tags: [admin]
+      summary: Update payment gateway settings (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentSettings"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/coin-packages:
+    get:
+      operationId: listAdminCoinPackages
+      tags: [admin]
+      summary: List coin packages (admin)
+      responses:
+        "200":
+          description: Coin packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CoinPackage"
+    post:
+      operationId: createAdminCoinPackage
+      tags: [admin]
+      summary: Create coin package (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCoinPackageBody"
+      responses:
+        "201":
+          description: Created coin package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoinPackage"
+
+  /admin/coin-packages/{packageId}:
+    put:
+      operationId: updateAdminCoinPackage
+      tags: [admin]
+      summary: Update coin package (admin)
+      parameters:
+        - in: path
+          name: packageId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCoinPackageBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoinPackage"
+    delete:
+      operationId: deleteAdminCoinPackage
+      tags: [admin]
+      summary: Delete coin package (admin)
+      parameters:
+        - in: path
+          name: packageId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +917,726 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    # Auth schemas
+    RegisterBody:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginBody:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        token:
+          type: string
+
+    UserProfile:
+      type: object
+      required: [id, username, email, role, createdAt]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        avatarUrl:
+          type: string
+          nullable: true
+        totalSpentUsd:
+          type: number
+          nullable: true
+        coinsBalance:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    # Card schemas
+    Card:
+      type: object
+      required: [id, name, franchise, rarity, imageUrl, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        franchise:
+          type: string
+          enum: [pokemon, onepiece]
+        rarity:
+          type: string
+          enum: [common, rare, super_rare, ultra_rare, legendary]
+        imageUrl:
+          type: string
+        description:
+          type: string
+          nullable: true
+        pullCount:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CardListResponse:
+      type: object
+      required: [cards, total, page, limit]
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    CreateCardBody:
+      type: object
+      required: [name, franchise, rarity, imageUrl]
+      properties:
+        name:
+          type: string
+        franchise:
+          type: string
+          enum: [pokemon, onepiece]
+        rarity:
+          type: string
+          enum: [common, rare, super_rare, ultra_rare, legendary]
+        imageUrl:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    # Pack schemas
+    Pack:
+      type: object
+      required: [id, name, franchise, priceCoins, imageUrl, isActive, cardCount, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        franchise:
+          type: string
+          enum: [pokemon, onepiece]
+        priceCoins:
+          type: integer
+        priceUsd:
+          type: number
+          nullable: true
+        imageUrl:
+          type: string
+        description:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        cardCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    PackDetail:
+      allOf:
+        - $ref: "#/components/schemas/Pack"
+        - type: object
+          properties:
+            cardPool:
+              type: array
+              items:
+                $ref: "#/components/schemas/PackCardEntry"
+
+    PackCardEntry:
+      type: object
+      required: [card, probability]
+      properties:
+        card:
+          $ref: "#/components/schemas/Card"
+        probability:
+          type: number
+          description: Probability as decimal (0-1)
+
+    CreatePackBody:
+      type: object
+      required: [name, franchise, priceCoins, imageUrl]
+      properties:
+        name:
+          type: string
+        franchise:
+          type: string
+          enum: [pokemon, onepiece]
+        priceCoins:
+          type: integer
+        priceUsd:
+          type: number
+          nullable: true
+        imageUrl:
+          type: string
+        description:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+
+    AddCardToPackBody:
+      type: object
+      required: [cardId, probability]
+      properties:
+        cardId:
+          type: integer
+        probability:
+          type: number
+          description: Probability as decimal (e.g. 0.05 = 5%)
+
+    # Gacha schemas
+    GachaPullBody:
+      type: object
+      required: [packId, pullCount]
+      properties:
+        packId:
+          type: integer
+        pullCount:
+          type: integer
+          enum: [1, 10]
+          description: Pull 1 or 10 cards
+
+    GachaPullResult:
+      type: object
+      required: [cards, coinsSpent, coinsRemaining]
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/PulledCard"
+        coinsSpent:
+          type: integer
+        coinsRemaining:
+          type: integer
+
+    PulledCard:
+      type: object
+      required: [card, isNew]
+      properties:
+        card:
+          $ref: "#/components/schemas/Card"
+        isNew:
+          type: boolean
+          description: True if this is the first time user got this card
+
+    GachaHistoryResponse:
+      type: object
+      required: [pulls, total, page, limit]
+      properties:
+        pulls:
+          type: array
+          items:
+            $ref: "#/components/schemas/GachaPullRecord"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    GachaPullRecord:
+      type: object
+      required: [id, pack, card, pulledAt]
+      properties:
+        id:
+          type: integer
+        pack:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        card:
+          $ref: "#/components/schemas/Card"
+        pulledAt:
+          type: string
+          format: date-time
+
+    # Collection schemas
+    CollectionItem:
+      type: object
+      required: [card, count, firstObtainedAt]
+      properties:
+        card:
+          $ref: "#/components/schemas/Card"
+        count:
+          type: integer
+        firstObtainedAt:
+          type: string
+          format: date-time
+
+    CollectionStats:
+      type: object
+      required: [totalCards, uniqueCards, byFranchise, byRarity, totalPulls]
+      properties:
+        totalCards:
+          type: integer
+        uniqueCards:
+          type: integer
+        byFranchise:
+          type: object
+          properties:
+            pokemon:
+              type: integer
+            onepiece:
+              type: integer
+        byRarity:
+          type: object
+          properties:
+            common:
+              type: integer
+            rare:
+              type: integer
+            super_rare:
+              type: integer
+            ultra_rare:
+              type: integer
+            legendary:
+              type: integer
+        totalPulls:
+          type: integer
+
+    # Wallet schemas
+    Wallet:
+      type: object
+      required: [balance, totalEarned, totalSpent]
+      properties:
+        balance:
+          type: integer
+        totalEarned:
+          type: integer
+        totalSpent:
+          type: integer
+
+    CoinTransactionListResponse:
+      type: object
+      required: [transactions, total, page, limit]
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoinTransaction"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    CoinTransaction:
+      type: object
+      required: [id, amount, type, description, createdAt]
+      properties:
+        id:
+          type: integer
+        amount:
+          type: integer
+        type:
+          type: string
+          enum: [credit, debit]
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Payment schemas
+    CoinPackage:
+      type: object
+      required: [id, name, coins, priceUsd, isActive]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        coins:
+          type: integer
+        priceUsd:
+          type: number
+        bonusCoins:
+          type: integer
+          nullable: true
+        isPopular:
+          type: boolean
+          nullable: true
+        isActive:
+          type: boolean
+
+    CreateCoinPackageBody:
+      type: object
+      required: [name, coins, priceUsd]
+      properties:
+        name:
+          type: string
+        coins:
+          type: integer
+        priceUsd:
+          type: number
+        bonusCoins:
+          type: integer
+          nullable: true
+        isPopular:
+          type: boolean
+          nullable: true
+        isActive:
+          type: boolean
+
+    CreatePaymentBody:
+      type: object
+      required: [coinPackageId]
+      properties:
+        coinPackageId:
+          type: integer
+
+    StripeSessionResponse:
+      type: object
+      required: [sessionId, url]
+      properties:
+        sessionId:
+          type: string
+        url:
+          type: string
+
+    MidtransPaymentResponse:
+      type: object
+      required: [token, redirectUrl, orderId]
+      properties:
+        token:
+          type: string
+        redirectUrl:
+          type: string
+        orderId:
+          type: string
+
+    UsdtPaymentResponse:
+      type: object
+      required: [address, amountUsdt, orderId, expiresAt]
+      properties:
+        address:
+          type: string
+        amountUsdt:
+          type: number
+        orderId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        qrCodeUrl:
+          type: string
+          nullable: true
+
+    PaymentHistoryResponse:
+      type: object
+      required: [payments, total, page, limit]
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentRecord"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    PaymentRecord:
+      type: object
+      required: [id, method, amountUsd, coinsGranted, status, createdAt]
+      properties:
+        id:
+          type: integer
+        method:
+          type: string
+          enum: [stripe, midtrans, usdt]
+        amountUsd:
+          type: number
+        coinsGranted:
+          type: integer
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+    # Leaderboard
+    LeaderboardEntry:
+      type: object
+      required: [rank, user, totalSpentUsd, totalPulls]
+      properties:
+        rank:
+          type: integer
+        user:
+          type: object
+          required: [id, username, avatarUrl]
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            avatarUrl:
+              type: string
+              nullable: true
+        totalSpentUsd:
+          type: number
+        totalPulls:
+          type: integer
+        topCard:
+          $ref: "#/components/schemas/Card"
+          nullable: true
+
+    # Dashboard
+    DashboardSummary:
+      type: object
+      required: [user, coinsBalance, totalPulls, collectionCount, recentPulls, totalSpentUsd]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        coinsBalance:
+          type: integer
+        totalPulls:
+          type: integer
+        collectionCount:
+          type: integer
+        totalSpentUsd:
+          type: number
+        recentPulls:
+          type: array
+          items:
+            $ref: "#/components/schemas/GachaPullRecord"
+        legendaryCount:
+          type: integer
+
+    # Admin schemas
+    AdminStats:
+      type: object
+      required: [totalUsers, totalRevenue, totalPulls, totalCards, totalPacks, recentTransactions]
+      properties:
+        totalUsers:
+          type: integer
+        totalRevenue:
+          type: number
+        totalPulls:
+          type: integer
+        totalCards:
+          type: integer
+        totalPacks:
+          type: integer
+        revenueByMethod:
+          type: object
+          properties:
+            stripe:
+              type: number
+            midtrans:
+              type: number
+            usdt:
+              type: number
+        recentTransactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTransactionRecord"
+
+    AdminUserListResponse:
+      type: object
+      required: [users, total, page, limit]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUserSummary"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AdminUserSummary:
+      type: object
+      required: [id, username, email, role, coinsBalance, totalSpentUsd, totalPulls, createdAt]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        coinsBalance:
+          type: integer
+        totalSpentUsd:
+          type: number
+        totalPulls:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminUserDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdminUserSummary"
+        - type: object
+          properties:
+            recentPulls:
+              type: array
+              items:
+                $ref: "#/components/schemas/GachaPullRecord"
+            paymentHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/PaymentRecord"
+
+    AdminUpdateUserBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, admin]
+        coinsBalance:
+          type: integer
+
+    AdminTransactionListResponse:
+      type: object
+      required: [transactions, total, page, limit]
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTransactionRecord"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AdminTransactionRecord:
+      type: object
+      required: [id, user, method, amountUsd, coinsGranted, status, createdAt]
+      properties:
+        id:
+          type: integer
+        user:
+          type: object
+          required: [id, username]
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+        method:
+          type: string
+          enum: [stripe, midtrans, usdt]
+        amountUsd:
+          type: number
+        coinsGranted:
+          type: integer
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentSettings:
+      type: object
+      properties:
+        stripe:
+          type: object
+          properties:
+            publicKey:
+              type: string
+            secretKey:
+              type: string
+            webhookSecret:
+              type: string
+            enabled:
+              type: boolean
+        midtrans:
+          type: object
+          properties:
+            serverKey:
+              type: string
+            clientKey:
+              type: string
+            isProduction:
+              type: boolean
+            enabled:
+              type: boolean
+        usdt:
+          type: object
+          properties:
+            walletAddress:
+              type: string
+            network:
+              type: string
+              enum: [trc20, erc20, bep20]
+            enabled:
+              type: boolean
+        nowpayments:
+          type: object
+          properties:
+            apiKey:
+              type: string
+            enabled:
+              type: boolean
