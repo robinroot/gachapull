@@ -1,1 +1,2 @@
 gachapull_project.tar.gz filter=lfs diff=lfs merge=lfs -text
+gachapull-latest.zip filter=lfs diff=lfs merge=lfs -text

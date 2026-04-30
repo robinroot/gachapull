@@ -12,3 +12,9 @@ id = "EXV10cqmlpyMFNNZ8_ekw"
 uri = "file://gachapull_source.zip"
 type = "unspecified"
 title = "GachaPull - Source Code + Database + Dokumentasi (0.4 MB)"
+
+[[outputs]]
+id = "kbSCNf2KZPvbm8nFgQ_gb"
+uri = "file://gachapull-latest.zip"
+type = "unspecified"
+title = "GachaPull — Source Code Terbaru"
