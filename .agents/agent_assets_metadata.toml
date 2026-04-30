@@ -18,3 +18,9 @@ id = "kbSCNf2KZPvbm8nFgQ_gb"
 uri = "file://gachapull-latest.zip"
 type = "unspecified"
 title = "GachaPull — Source Code Terbaru"
+
+[[outputs]]
+id = "ZSGqj7NOlx-PHbgNe2C6j"
+uri = "file://gachapull-src.zip"
+type = "unspecified"
+title = "GachaPull — Source Code"
