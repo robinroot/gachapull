@@ -18,8 +18,11 @@ router.post("/gacha/pull", requireAuth, async (req, res) => {
     const [pack] = await db.select().from(packsTable).where(eq(packsTable.id, packId)).limit(1);
     if (!pack || !pack.isActive) { res.status(400).json({ error: "Pack not available" }); return; }
 
-    const poolEntries = await db.select({ cardId: packCardsTable.cardId, probability: packCardsTable.probability })
+    const allPoolEntries = await db.select({ cardId: packCardsTable.cardId, probability: packCardsTable.probability })
       .from(packCardsTable).where(eq(packCardsTable.packId, packId));
+
+    // Only include cards with probability > 0
+    const poolEntries = allPoolEntries.filter(e => parseFloat(e.probability) > 0);
 
     if (poolEntries.length === 0) { res.status(400).json({ error: "Pack has no cards" }); return; }
 
@@ -35,11 +38,13 @@ router.post("/gacha/pull", requireAuth, async (req, res) => {
 
     for (let i = 0; i < pullCount; i++) {
       let rand = Math.random() * totalProb;
-      let selectedCardId = poolEntries[poolEntries.length - 1].cardId;
+      let selectedCardId: number | null = null;
       for (const entry of poolEntries) {
         rand -= parseFloat(entry.probability);
         if (rand <= 0) { selectedCardId = entry.cardId; break; }
       }
+      // Fallback: pick last entry (floating point edge case only, all have prob > 0)
+      if (selectedCardId === null) selectedCardId = poolEntries[poolEntries.length - 1].cardId;
 
       const [card] = await db.select().from(cardsTable).where(eq(cardsTable.id, selectedCardId)).limit(1);
       if (!card) continue;
