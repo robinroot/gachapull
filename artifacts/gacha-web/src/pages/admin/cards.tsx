@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageUpload } from "@/components/image-upload";
 
 const RARITIES = ["common", "rare", "super_rare", "ultra_rare", "legendary"];
 const FRANCHISES = ["pokemon", "onepiece"];
@@ -172,14 +173,11 @@ export default function AdminCards() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Image URL</Label>
-                <Input
-                  value={form.imageUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
+              <ImageUpload
+                label="Gambar Kartu"
+                value={form.imageUrl}
+                onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+              />
               <div className="space-y-2">
                 <Label>Description</Label>
                 <Input

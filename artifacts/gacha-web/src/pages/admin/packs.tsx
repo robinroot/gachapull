@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, Wallet, Layers, X, AlertCircle } from "lucide-react";
+import { ImageUpload } from "@/components/image-upload";
 
 type PackForm = {
   name: string;
@@ -340,14 +341,11 @@ export default function AdminPacks() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>URL Gambar</Label>
-                <Input
-                  value={form.imageUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
+              <ImageUpload
+                label="Gambar Pack"
+                value={form.imageUrl}
+                onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+              />
               <div className="space-y-2">
                 <Label>Deskripsi</Label>
                 <Input

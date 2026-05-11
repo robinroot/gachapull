@@ -10,6 +10,7 @@ import paymentsRouter from "./payments";
 import leaderboardRouter from "./leaderboard";
 import dashboardRouter from "./dashboard";
 import adminRouter from "./admin";
+import uploadRouter from "./upload";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(paymentsRouter);
 router.use(leaderboardRouter);
 router.use(dashboardRouter);
 router.use(adminRouter);
+router.use(uploadRouter);
 
 export default router;
