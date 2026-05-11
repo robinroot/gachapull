@@ -30,6 +30,7 @@ git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
 
 if [ "$FRESH" = true ] || [ ! -d "$APP_DIR/.git" ]; then
   log "Clone repository..."
+  cd /tmp  # Pindah dari APP_DIR sebelum dihapus
   rm -rf "$APP_DIR"
   git clone --depth=1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
   git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
