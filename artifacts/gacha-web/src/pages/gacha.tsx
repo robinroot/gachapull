@@ -351,14 +351,206 @@ export default function GachaPage() {
           transform: translateX(-100%) rotate(25deg);
           animation: card-shine 1.5s ease-in-out 0.3s 1;
         }
+        @keyframes star-twinkle {
+          0%, 100% { opacity: 0; transform: scale(0.5); }
+          50%       { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pack-float {
+          0%, 100% { transform: translateY(0px) rotate(-1deg); }
+          50%       { transform: translateY(-14px) rotate(1deg); }
+        }
+        @keyframes pack-aura {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50%       { opacity: 0.8; transform: scale(1.08); }
+        }
+        @keyframes orbit {
+          from { transform: rotate(var(--orbit-start)) translateX(var(--orbit-r)) rotate(calc(-1 * var(--orbit-start))); }
+          to   { transform: rotate(calc(var(--orbit-start) + 360deg)) translateX(var(--orbit-r)) rotate(calc(-1 * (var(--orbit-start) + 360deg))); }
+        }
+        .pack-float { animation: pack-float 3.5s ease-in-out infinite; }
+        .pack-aura  { animation: pack-aura 3s ease-in-out infinite; }
+        .orbit-dot  { animation: orbit var(--orbit-dur) linear infinite; }
+        @keyframes idle-orb-drift {
+          0%   { transform: translate(0, 0) scale(1); }
+          33%  { transform: translate(30px, -20px) scale(1.1); }
+          66%  { transform: translate(-20px, 15px) scale(0.95); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
       `}</style>
 
       {/* Flash overlay */}
       {flashColor && <FlashOverlay color={flashColor} />}
       {showParticles && <LegendaryParticles />}
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* Top bar */}
+      {/* ── IDLE — full-screen immersive layout ── */}
+      {pullState === "idle" && (
+        <div className="relative min-h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
+
+          {/* ── Atmospheric background ── */}
+          <div className="absolute inset-0 pointer-events-none select-none">
+            {/* Deep radial gradient */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,hsla(43,60%,12%,0.6)_0%,transparent_70%)]" />
+            {/* Drifting color orbs */}
+            <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]"
+              style={{ animation: "idle-orb-drift 12s ease-in-out infinite" }} />
+            <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] rounded-full bg-purple-500/6 blur-[100px]"
+              style={{ animation: "idle-orb-drift 9s ease-in-out infinite reverse", animationDelay: "3s" }} />
+            <div className="absolute top-2/3 left-1/5 w-[300px] h-[300px] rounded-full bg-blue-500/5 blur-[80px]"
+              style={{ animation: "idle-orb-drift 15s ease-in-out infinite", animationDelay: "6s" }} />
+            {/* Twinkling stars */}
+            {Array.from({ length: 55 }).map((_, i) => {
+              const x = (i * 37.7 + 11) % 100;
+              const y = (i * 53.3 + 7) % 100;
+              const size = 1 + (i % 3);
+              const dur = 2 + (i % 5);
+              const delay = (i * 0.18) % 4;
+              return (
+                <div key={i} className="absolute rounded-full bg-white"
+                  style={{ left: `${x}%`, top: `${y}%`, width: size, height: size,
+                    animation: `star-twinkle ${dur}s ease-in-out ${delay}s infinite` }} />
+              );
+            })}
+          </div>
+
+          {/* ── Top bar ── */}
+          <div className="relative z-10 flex items-center justify-between px-6 pt-6">
+            <Link href="/packs">
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground backdrop-blur-sm bg-background/20 border border-white/10">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Kembali ke Packs
+              </Button>
+            </Link>
+            <Link href="/wallet">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/30 backdrop-blur-sm border border-primary/30 hover:border-primary/60 hover:bg-background/50 transition-all cursor-pointer">
+                <Wallet className="w-4 h-4 text-primary" />
+                <span className="font-mono font-bold text-primary">{formatIdr(balanceIdr)}</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* ── Center — pack presentation ── */}
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 py-8">
+
+            {/* Pack title */}
+            <div className="text-center mb-2">
+              <p className="text-sm font-medium text-primary/70 uppercase tracking-widest mb-1">
+                {(pack as any).franchise === "onepiece" ? "One Piece" : "Pokémon"}
+              </p>
+              <h1 className="text-4xl md:text-5xl font-display font-bold text-white drop-shadow-[0_2px_24px_hsla(43,96%,58%,0.5)]">
+                {pack.name}
+              </h1>
+              <p className="text-muted-foreground mt-2 text-sm">{formatIdr(priceIdr)} per pull</p>
+            </div>
+
+            {/* Pack card with orbit + aura */}
+            <div className="relative flex items-center justify-center" style={{ width: 340, height: 340 }}>
+
+              {/* Outer glow aura rings */}
+              <div className="pack-aura absolute inset-0 rounded-full bg-[radial-gradient(circle,hsla(43,96%,58%,0.25)_0%,transparent_70%)]" />
+              <div className="absolute inset-4 rounded-full border border-primary/20 pack-aura" style={{ animationDelay: "1s" }} />
+              <div className="absolute inset-10 rounded-full border border-primary/15 pack-aura" style={{ animationDelay: "0.5s" }} />
+
+              {/* Orbiting sparkle dots */}
+              {[
+                { r: "130px", dur: "5s",  start:   "0deg",  size: 8,  color: "hsl(43,96%,58%)"  },
+                { r: "130px", dur: "5s",  start: "180deg",  size: 6,  color: "hsl(43,96%,58%)"  },
+                { r: "110px", dur: "8s",  start:  "60deg",  size: 5,  color: "hsl(270,70%,70%)" },
+                { r: "110px", dur: "8s",  start: "240deg",  size: 4,  color: "hsl(270,70%,70%)" },
+                { r: "150px", dur: "12s", start: "120deg",  size: 4,  color: "hsl(210,100%,70%)"},
+                { r: "150px", dur: "12s", start: "300deg",  size: 3,  color: "hsl(210,100%,70%)"},
+              ].map((dot, i) => (
+                <div key={i} className="absolute orbit-dot inset-0 flex items-center justify-center"
+                  style={{ "--orbit-start": dot.start, "--orbit-r": dot.r, "--orbit-dur": dot.dur } as React.CSSProperties}>
+                  <div className="rounded-full" style={{ width: dot.size, height: dot.size, background: dot.color,
+                    boxShadow: `0 0 ${dot.size * 2}px ${dot.color}`, opacity: 0.9 }} />
+                </div>
+              ))}
+
+              {/* Pack image */}
+              <div
+                className="pack-float relative z-10 w-56 h-56 rounded-3xl border-2 border-primary/40 bg-card/60 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-primary transition-all duration-300 hover:shadow-[0_0_60px_hsla(43,96%,58%,0.5)]"
+                onClick={handlePull}
+                style={{ boxShadow: "0 0 40px hsla(43,96%,58%,0.2), inset 0 1px 0 hsla(255,255%,255%,0.1)" }}
+              >
+                <img
+                  src={(pack as any).imageUrl || ""}
+                  alt={pack.name}
+                  className="w-44 h-44 object-contain drop-shadow-[0_0_20px_hsla(43,96%,58%,0.4)]"
+                  onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/200x200/1a1a2e/FFD700?text=Pack"; }}
+                />
+              </div>
+            </div>
+
+            {/* Quantity selector */}
+            <div className="flex items-center gap-3">
+              {([1, 10] as const).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => setQuantity(q)}
+                  className={cn(
+                    "px-8 py-3 rounded-xl font-bold text-sm transition-all duration-200 border",
+                    quantity === q
+                      ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsla(43,96%,58%,0.5)]"
+                      : "bg-background/30 backdrop-blur-sm border-white/15 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  )}
+                >
+                  Pull ×{q}
+                </button>
+              ))}
+            </div>
+
+            {/* Cost + CTA */}
+            <div className="flex flex-col items-center gap-3">
+              <div className={cn(
+                "flex items-center gap-2 px-5 py-2.5 rounded-full border backdrop-blur-sm",
+                canAfford
+                  ? "bg-primary/10 border-primary/30 text-primary"
+                  : "bg-destructive/10 border-destructive/30 text-destructive"
+              )}>
+                <Wallet className="w-4 h-4" />
+                <span className="font-mono font-bold text-lg">{formatIdr(totalCost)}</span>
+                <span className="text-xs opacity-70">· Saldo: {formatIdr(balanceIdr)}</span>
+              </div>
+
+              {!canAfford && (
+                <Link href="/wallet">
+                  <Button variant="link" size="sm" className="text-primary">Top-up saldo →</Button>
+                </Link>
+              )}
+
+              <Button
+                size="lg"
+                onClick={handlePull}
+                disabled={!canAfford}
+                className="px-16 py-6 text-lg font-display font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-all duration-300 rounded-2xl"
+                style={{ boxShadow: canAfford ? "0 0 40px hsla(43,96%,58%,0.5), 0 4px 24px hsla(43,96%,58%,0.3)" : undefined }}
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Pull {quantity === 1 ? "1 Kartu" : "10 Kartu"}!
+              </Button>
+            </div>
+
+            {/* Rarity hint */}
+            <div className="flex items-center gap-3 mt-2 flex-wrap justify-center">
+              {[
+                { label: "Legendary",  color: "hsl(0,84%,60%)"    },
+                { label: "Ultra Rare", color: "hsl(270,70%,70%)"  },
+                { label: "Super Rare", color: "hsl(210,100%,70%)" },
+                { label: "Rare",       color: "hsl(140,70%,55%)"  },
+                { label: "Common",     color: "hsl(0,0%,55%)"     },
+              ].map(({ label, color }) => (
+                <span key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="w-2 h-2 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={cn("container mx-auto px-4 py-8 max-w-5xl", pullState === "idle" ? "hidden" : "")}>
+        {/* Top bar (pulling / reveal states) */}
         <div className="flex items-center justify-between mb-6">
           <Link href="/packs">
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
@@ -374,7 +566,7 @@ export default function GachaPage() {
           </Link>
         </div>
 
-        {/* Pack info */}
+        {/* Pack info header for non-idle */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">{pack.name}</h1>
           <div className="flex items-center justify-center gap-2">
@@ -384,67 +576,6 @@ export default function GachaPage() {
             <span className="text-muted-foreground text-sm">{formatIdr(priceIdr)} per pull</span>
           </div>
         </div>
-
-        {/* ── IDLE ── */}
-        {pullState === "idle" && (
-          <div className="flex flex-col items-center gap-8">
-            <div className="relative">
-              <div
-                className="w-64 h-64 rounded-2xl border-2 border-primary/30 bg-card flex items-center justify-center cursor-pointer hover:border-primary/70 transition-all duration-300 hover:shadow-[0_0_40px_hsla(43,96%,58%,0.3)]"
-                onClick={handlePull}
-              >
-                <img
-                  src={(pack as any).imageUrl || ""}
-                  alt={pack.name}
-                  className="w-48 h-48 object-contain transition-transform duration-300 hover:scale-110"
-                  onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/200x200/1a1a2e/FFD700?text=Pack"; }}
-                />
-              </div>
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground font-bold px-4">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Klik untuk Pull!
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant={quantity === 1 ? "default" : "outline"} onClick={() => setQuantity(1)}
-                className={quantity === 1 ? "bg-primary text-primary-foreground" : ""}>
-                Pull x1
-              </Button>
-              <Button variant={quantity === 10 ? "default" : "outline"} onClick={() => setQuantity(10)}
-                className={quantity === 10 ? "bg-primary text-primary-foreground" : ""}>
-                Pull x10
-              </Button>
-            </div>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-lg font-bold mb-1">
-                <Wallet className="w-5 h-5 text-primary" />
-                <span className={cn("font-mono", canAfford ? "text-primary" : "text-destructive")}>{formatIdr(totalCost)}</span>
-              </div>
-              <p className={cn("text-xs", canAfford ? "text-muted-foreground" : "text-destructive font-medium")}>
-                {canAfford ? `Saldo kamu: ${formatIdr(balanceIdr)}` : `Saldo tidak cukup! Kamu hanya punya ${formatIdr(balanceIdr)}`}
-              </p>
-              {!canAfford && (
-                <Link href="/wallet">
-                  <Button variant="link" size="sm" className="mt-1 text-primary">Top-up saldo →</Button>
-                </Link>
-              )}
-            </div>
-
-            <Button
-              size="lg"
-              onClick={handlePull}
-              disabled={!canAfford}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-12 shadow-[0_0_20px_hsla(43,96%,58%,0.4)] disabled:opacity-50 hover:shadow-[0_0_35px_hsla(43,96%,58%,0.6)] transition-all duration-300"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Pull {quantity === 1 ? "1 Kartu" : "10 Kartu"}!
-            </Button>
-          </div>
-        )}
 
         {/* ── PULLING ── */}
         {pullState === "pulling" && (
