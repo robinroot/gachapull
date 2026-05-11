@@ -36,3 +36,9 @@ id = "uW_7jEya6ZQ6_d_ciT0Jt"
 uri = "file://INSTALLATION.md"
 type = "text"
 title = "Panduan Instalasi & Deployment"
+
+[[outputs]]
+id = "EtyAq2C6O6VzfLafYgJUQ"
+uri = "file://gachapull.zip"
+type = "unspecified"
+title = "GachaPull — Source Code + Database (ZIP, 190KB)"
