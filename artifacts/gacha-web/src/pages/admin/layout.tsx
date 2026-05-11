@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useLogout } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   CreditCard,
@@ -8,13 +9,16 @@ import {
   Users,
   Receipt,
   Settings,
-  Wallet,
   ShieldAlert,
   ChevronRight,
   Truck,
+  LogOut,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -28,7 +32,20 @@ const NAV_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, logout } = useAuth();
+  const logoutMutation = useLogout();
+
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync({});
+      logout();
+      setLocation("/");
+      toast.success("Berhasil keluar");
+    } catch {
+      logout();
+      setLocation("/");
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== "admin")) {
@@ -81,8 +98,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           ))}
         </nav>
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
           <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground">
+              <Home className="w-4 h-4 mr-2" />
+              Kembali ke Site
+            </Button>
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Keluar
+          </Button>
         </div>
       </aside>
 
