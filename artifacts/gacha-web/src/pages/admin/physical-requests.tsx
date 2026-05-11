@@ -1,6 +1,5 @@
 import { useState } from "react";
-import AdminLayout from "./layout";
-import { useTitle, formatIdr } from "@/lib/helpers";
+import { useTitle } from "@/lib/helpers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +20,11 @@ const RARITY_BADGE: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; badge: string }> = {
-  pending: { label: "Pending", icon: <Clock className="w-3.5 h-3.5" />, badge: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
-  processing: { label: "Diproses", icon: <Package className="w-3.5 h-3.5" />, badge: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  shipped: { label: "Dikirim", icon: <Truck className="w-3.5 h-3.5" />, badge: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
-  delivered: { label: "Terkirim", icon: <CheckCircle className="w-3.5 h-3.5" />, badge: "bg-green-500/15 text-green-400 border-green-500/30" },
-  cancelled: { label: "Dibatalkan", icon: <XCircle className="w-3.5 h-3.5" />, badge: "bg-red-500/15 text-red-400 border-red-500/30" },
+  pending:    { label: "Pending",    icon: <Clock className="w-3.5 h-3.5" />,        badge: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  processing: { label: "Diproses",   icon: <Package className="w-3.5 h-3.5" />,      badge: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  shipped:    { label: "Dikirim",    icon: <Truck className="w-3.5 h-3.5" />,        badge: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+  delivered:  { label: "Terkirim",   icon: <CheckCircle className="w-3.5 h-3.5" />,  badge: "bg-green-500/15 text-green-400 border-green-500/30" },
+  cancelled:  { label: "Dibatalkan", icon: <XCircle className="w-3.5 h-3.5" />,      badge: "bg-red-500/15 text-red-400 border-red-500/30" },
 };
 
 type PhysicalRequest = {
@@ -46,6 +45,8 @@ type PhysicalRequest = {
   updatedAt: string;
 };
 
+// key prop on this component forces full remount when a different request is selected,
+// so useState initializes fresh from the new request's data every time.
 function UpdateDialog({
   open,
   onClose,
@@ -70,7 +71,11 @@ function UpdateDialog({
       const res = await fetch(`/api/admin/physical-requests/${request.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status, trackingNumber: trackingNumber || undefined, adminNotes: adminNotes || undefined }),
+        body: JSON.stringify({
+          status,
+          trackingNumber: trackingNumber || undefined,
+          adminNotes: adminNotes || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Update failed");
@@ -151,7 +156,7 @@ function UpdateDialog({
               onClick={handleSave}
               disabled={loading}
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Simpan
             </Button>
           </div>
@@ -161,6 +166,9 @@ function UpdateDialog({
   );
 }
 
+// Bug fix: removed the <AdminLayout> wrapper here.
+// App.tsx already wraps this component in <AdminLayout>, so adding it again
+// caused the sidebar to render twice (double-nested layout).
 export default function AdminPhysicalRequests() {
   useTitle("Admin - Physical Card Requests");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -172,7 +180,9 @@ export default function AdminPhysicalRequests() {
     queryKey: ["/api/admin/physical-requests", statusFilter],
     queryFn: async () => {
       const token = localStorage.getItem("gacha_token");
-      const url = statusFilter === "all" ? "/api/admin/physical-requests" : `/api/admin/physical-requests?status=${statusFilter}`;
+      const url = statusFilter === "all"
+        ? "/api/admin/physical-requests"
+        : `/api/admin/physical-requests?status=${statusFilter}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -192,7 +202,7 @@ export default function AdminPhysicalRequests() {
   }, {} as Record<string, number>);
 
   return (
-    <AdminLayout>
+    <>
       <div className="mb-6">
         <h1 className="text-3xl font-display font-bold">Physical Card Requests</h1>
         <p className="text-muted-foreground mt-1">Kelola permintaan pengiriman kartu fisik dari pengguna</p>
@@ -315,12 +325,15 @@ export default function AdminPhysicalRequests() {
         </div>
       )}
 
+      {/* key={selectedRequest?.id} forces UpdateDialog to remount when a different
+          request is selected, so useState initializes with fresh data every time */}
       <UpdateDialog
+        key={selectedRequest?.id ?? "none"}
         open={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
         request={selectedRequest}
         onUpdated={handleUpdated}
       />
-    </AdminLayout>
+    </>
   );
 }
