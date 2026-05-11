@@ -15,6 +15,7 @@ import CollectionPage from "@/pages/collection";
 import LeaderboardPage from "@/pages/leaderboard";
 import WalletPage from "@/pages/wallet";
 import HistoryPage from "@/pages/history";
+import MyRequestsPage from "@/pages/my-requests";
 import AdminLayout from "@/pages/admin/layout";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminCards from "@/pages/admin/cards";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/leaderboard" component={LeaderboardPage} />
       <Route path="/wallet" component={WalletPage} />
       <Route path="/history" component={HistoryPage} />
+      <Route path="/my-requests" component={MyRequestsPage} />
       <Route path="/admin">
         <AdminLayout>
           <AdminDashboard />

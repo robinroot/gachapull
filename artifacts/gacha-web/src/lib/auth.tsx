@@ -60,7 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
-        isAuthenticated: !!user,
+        // Optimistic auth: jika token ada dan masih loading, anggap sudah login
+        // agar tidak redirect ke /login saat page refresh
+        isAuthenticated: !!user || (!!token && isLoading),
         refetchUser: refetch,
       }}
     >
