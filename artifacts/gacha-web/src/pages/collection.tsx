@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Wallet, Package, Loader2, AlertTriangle, MapPin, Phone, User, ScrollText, ChevronDown } from "lucide-react";
+import { Wallet, Package, Loader2, AlertTriangle, MapPin, Phone, User, ScrollText } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const RARITY_STYLES: Record<string, string> = {
@@ -70,7 +70,7 @@ function BuybackDialog({ open, onClose, card, buybackValue, onSuccess }: Buyback
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Buyback failed");
-      onSuccess(data.coinsRefunded, data.newBalance, data.cardName);
+      onSuccess(data.amountRefunded, data.newBalance, data.cardName);
       onClose();
     } catch (err: unknown) {
       toast.error((err as Error).message || "Buyback gagal");
@@ -305,7 +305,6 @@ export default function CollectionPage() {
   const [rarity, setRarity] = useState<string | undefined>(undefined);
   const [buybackCard, setBuybackCard] = useState<CollectionEntry | null>(null);
   const [physicalCard, setPhysicalCard] = useState<CollectionEntry["card"] | null>(null);
-  const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = useGetCollection({ franchise, rarity });
   const { data: stats } = useGetCollectionStats();
@@ -396,7 +395,6 @@ export default function CollectionPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {collection.map((item, idx) => {
               const cardRarity = item.card?.rarity || "common";
-              const isExpanded = expandedCard === idx;
               return (
                 <div
                   key={idx}
@@ -424,37 +422,26 @@ export default function CollectionPage() {
                       {(RARITY_LABEL[cardRarity] || cardRarity).toUpperCase()}
                     </Badge>
 
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-full mt-2 h-7 text-[10px] text-muted-foreground hover:text-foreground hover:bg-secondary/50 flex items-center justify-center gap-1"
-                      onClick={() => setExpandedCard(isExpanded ? null : idx)}
-                    >
-                      Aksi <ChevronDown className={cn("w-3 h-3 transition-transform", isExpanded && "rotate-180")} />
-                    </Button>
-
-                    {isExpanded && (
-                      <div className="mt-1 space-y-1.5 border-t border-border pt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full h-7 text-[10px] border-primary/40 text-primary hover:bg-primary/10 flex items-center gap-1"
-                          onClick={() => { setBuybackCard(item); setExpandedCard(null); }}
-                        >
-                          <Wallet className="w-3 h-3" />
-                          Jual ({formatIdr(item.buybackValue || 0)})
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full h-7 text-[10px] border-blue-500/40 text-blue-400 hover:bg-blue-500/10 flex items-center gap-1"
-                          onClick={() => { setPhysicalCard(item.card); setExpandedCard(null); }}
-                        >
-                          <Package className="w-3 h-3" />
-                          Kartu Fisik
-                        </Button>
-                      </div>
-                    )}
+                    <div className="mt-2 space-y-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-7 text-[10px] border-primary/40 text-primary hover:bg-primary/10 flex items-center gap-1"
+                        onClick={() => setBuybackCard(item)}
+                      >
+                        <Wallet className="w-3 h-3" />
+                        Jual ({formatIdr(item.buybackValue || 0)})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-7 text-[10px] border-blue-500/40 text-blue-400 hover:bg-blue-500/10 flex items-center gap-1"
+                        onClick={() => setPhysicalCard(item.card)}
+                      >
+                        <Package className="w-3 h-3" />
+                        Request Fisik
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );

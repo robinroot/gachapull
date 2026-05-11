@@ -95,7 +95,7 @@ function App() {
             <Router />
           </AuthProvider>
         </WouterRouter>
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-right" closeButton />
       </TooltipProvider>
     </QueryClientProvider>
   );
