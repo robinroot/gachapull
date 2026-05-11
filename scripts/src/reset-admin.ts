@@ -1,5 +1,5 @@
 import { db } from "@workspace/db";
-import { usersTable, userCoinsTable } from "@workspace/db/schema";
+import { usersTable, userBalanceTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import bcryptjs from "bcryptjs";
 
@@ -20,6 +20,10 @@ if (existing.length > 0) {
     console.log("Updated password hash");
     const valid2 = await bcryptjs.compare(password, newHash);
     console.log("New hash valid:", valid2);
+  } else {
+    // Ensure role is admin
+    await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.email, email));
+    console.log("Admin role confirmed");
   }
 } else {
   const hash = await bcryptjs.hash(password, 12);
@@ -29,7 +33,7 @@ if (existing.length > 0) {
     passwordHash: hash,
     role: "admin",
   }).returning();
-  await db.insert(userCoinsTable).values({ userId: user.id, balance: 9999, totalEarned: 9999, totalSpent: 0 });
+  await db.insert(userBalanceTable).values({ userId: user.id, balanceIdr: 0, totalTopup: 0, totalSpent: 0 });
   console.log("Created admin user:", user.id);
 }
 
