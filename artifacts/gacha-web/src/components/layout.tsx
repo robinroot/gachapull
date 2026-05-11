@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useLogout } from "@workspace/api-client-react";
-import { Wallet, User, LogOut, ShieldAlert, Sparkles } from "lucide-react";
+import { Wallet, User, LogOut, ShieldAlert, Sparkles, Package } from "lucide-react";
 import { formatIdr } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,6 +131,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <Link href="/wallet" className="w-full flex items-center">
                         <Wallet className="mr-2 h-4 w-4" />
                         <span>Saldo & Top-up</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href="/my-requests" className="w-full flex items-center">
+                        <Package className="mr-2 h-4 w-4" />
+                        <span>Permintaan Kartu Fisik</span>
                       </Link>
                     </DropdownMenuItem>
                     {user.role === "admin" && (
