@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, userCoinsTable, gachaPullsTable, userCollectionTable, cardsTable, packsTable, paymentOrdersTable } from "@workspace/db";
+import { db, usersTable, userBalanceTable, gachaPullsTable, userCollectionTable, cardsTable, packsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { formatCard } from "./cards";
@@ -10,7 +10,7 @@ router.get("/dashboard", requireAuth, async (req, res) => {
   const userId = req.user!.userId;
   try {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    const [coins] = await db.select().from(userCoinsTable).where(eq(userCoinsTable.userId, userId)).limit(1);
+    const [balance] = await db.select().from(userBalanceTable).where(eq(userBalanceTable.userId, userId)).limit(1);
     const [{ totalPulls }] = await db.select({ totalPulls: sql<number>`count(*)::int` }).from(gachaPullsTable).where(eq(gachaPullsTable.userId, userId));
     const [{ collectionCount }] = await db.select({ collectionCount: sql<number>`count(*)::int` }).from(userCollectionTable).where(eq(userCollectionTable.userId, userId));
 
@@ -33,10 +33,6 @@ router.get("/dashboard", requireAuth, async (req, res) => {
       .orderBy(desc(gachaPullsTable.pulledAt))
       .limit(5);
 
-    const [{ totalSpentUsd }] = await db.select({ totalSpentUsd: sql<number>`coalesce(sum(amount_usd::numeric), 0)` })
-      .from(paymentOrdersTable)
-      .where(and(eq(paymentOrdersTable.userId, userId), eq(paymentOrdersTable.status, "completed")));
-
     res.json({
       user: {
         id: user.id,
@@ -44,14 +40,14 @@ router.get("/dashboard", requireAuth, async (req, res) => {
         email: user.email,
         role: user.role,
         avatarUrl: user.avatarUrl,
-        coinsBalance: coins?.balance ?? 0,
+        balanceIdr: balance?.balanceIdr ?? 0,
         createdAt: user.createdAt.toISOString(),
       },
-      coinsBalance: coins?.balance ?? 0,
+      balanceIdr: balance?.balanceIdr ?? 0,
       totalPulls,
       collectionCount,
       legendaryCount,
-      totalSpentUsd: parseFloat(String(totalSpentUsd)) || 0,
+      totalSpentIdr: balance?.totalSpent ?? 0,
       recentPulls: recentPullsRaw.map(p => ({
         id: p.id,
         pack: { id: p.packId, name: p.packName },

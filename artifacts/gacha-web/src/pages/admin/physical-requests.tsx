@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AdminLayout from "./layout";
-import { useTitle, formatUsd } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

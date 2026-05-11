@@ -1,8 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useLogout } from "@workspace/api-client-react";
-import { Coins, User, LogOut, ShieldAlert } from "lucide-react";
-import { formatCoins } from "@/lib/helpers";
+import { Wallet, User, LogOut, ShieldAlert } from "lucide-react";
+import { formatIdr } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,9 +24,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       await logoutMutation.mutateAsync({});
       logout();
       setLocation("/");
-      toast.success("Logged out successfully");
+      toast.success("Berhasil keluar");
     } catch (e) {
-      toast.error("Failed to logout");
+      toast.error("Gagal keluar");
     }
   };
 
@@ -38,13 +38,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/" className="flex items-center gap-2">
               <span className="font-display font-bold text-2xl tracking-tighter text-primary">GachaPull</span>
             </Link>
-            
+
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
               <Link href="/packs" className="hover:text-primary transition-colors">Packs</Link>
               <Link href="/leaderboard" className="hover:text-primary transition-colors">Leaderboard</Link>
               {user && (
                 <>
-                  <Link href="/collection" className="hover:text-primary transition-colors">Collection</Link>
+                  <Link href="/collection" className="hover:text-primary transition-colors">Koleksi</Link>
                   <Link href="/history" className="hover:text-primary transition-colors">History</Link>
                 </>
               )}
@@ -56,8 +56,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <>
                 <Link href="/wallet">
                   <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border border-border/50 hover:bg-secondary transition-colors cursor-pointer">
-                    <Coins className="w-4 h-4 text-primary" />
-                    <span className="font-mono font-bold text-primary">{formatCoins(user.coinsBalance || 0)}</span>
+                    <Wallet className="w-4 h-4 text-primary" />
+                    <span className="font-mono font-bold text-primary text-sm">{formatIdr((user as any).balanceIdr || 0)}</span>
                   </div>
                 </Link>
 
@@ -74,9 +74,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
                         <p className="font-medium">{user.username}</p>
-                        <p className="w-[200px] truncate text-sm text-muted-foreground">
-                          {user.email}
-                        </p>
+                        <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
                     <DropdownMenuSeparator />
@@ -88,11 +86,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="cursor-pointer">
                       <Link href="/wallet" className="w-full flex items-center">
-                        <Coins className="mr-2 h-4 w-4" />
-                        <span>Wallet & Buy Coins</span>
+                        <Wallet className="mr-2 h-4 w-4" />
+                        <span>Saldo & Top-up</span>
                       </Link>
                     </DropdownMenuItem>
-                    {user.role === 'admin' && (
+                    {user.role === "admin" && (
                       <DropdownMenuItem asChild className="cursor-pointer">
                         <Link href="/admin" className="w-full flex items-center text-primary">
                           <ShieldAlert className="mr-2 h-4 w-4" />
@@ -103,7 +101,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
+                      <span>Keluar</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -111,11 +109,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2">
-                  Log in
+                  Masuk
                 </Link>
                 <Link href="/register">
                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
-                    Start Pulling
+                    Mulai Pull
                   </Button>
                 </Link>
               </div>
@@ -132,11 +130,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col items-center md:items-start gap-2">
             <span className="font-display font-bold text-xl text-primary">GachaPull</span>
-            <p className="text-sm text-muted-foreground">Premium digital card collecting experience.</p>
+            <p className="text-sm text-muted-foreground">Koleksi kartu digital premium.</p>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="hover:text-primary transition-colors cursor-pointer">Terms of Service</span>
-            <span className="hover:text-primary transition-colors cursor-pointer">Privacy Policy</span>
+            <span className="hover:text-primary transition-colors cursor-pointer">Syarat & Ketentuan</span>
+            <span className="hover:text-primary transition-colors cursor-pointer">Kebijakan Privasi</span>
           </div>
         </div>
       </footer>

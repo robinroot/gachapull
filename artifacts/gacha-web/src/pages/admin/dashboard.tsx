@@ -1,22 +1,21 @@
 import { useGetAdminStats } from "@workspace/api-client-react";
-import { useTitle, formatUsd } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Package, CreditCard, DollarSign, Star, TrendingUp } from "lucide-react";
+import { Users, Package, CreditCard, Wallet, Star, TrendingUp } from "lucide-react";
 
 type AdminStats = {
   totalUsers: number;
   totalCards: number;
   totalPacks: number;
   totalPulls: number;
-  totalRevenue: number;
-  revenueByMethod: { stripe?: number; midtrans?: number; usdt?: number };
+  totalRevenueIdr: number;
+  revenueByMethod: { qris?: number; gopay?: number; ovo?: number; dana?: number; bank_transfer?: number };
   recentTransactions: Array<{
     id: number;
     user: { id: number; username: string };
     method: string;
-    amountUsd: number;
-    coinsGranted?: number | null;
+    amountIdr: number;
     status: string;
     createdAt: string;
   }>;
@@ -39,8 +38,8 @@ export default function AdminDashboard() {
         { icon: Star, label: "Total Cards", value: stats.totalCards, color: "text-purple-400" },
         { icon: Package, label: "Total Packs", value: stats.totalPacks, color: "text-yellow-400" },
         { icon: CreditCard, label: "Total Pulls", value: stats.totalPulls, color: "text-green-400" },
-        { icon: DollarSign, label: "Total Revenue", value: formatUsd(Number(stats.totalRevenue || 0)), color: "text-primary" },
-        { icon: TrendingUp, label: "Stripe Revenue", value: formatUsd(Number(stats.revenueByMethod?.stripe || 0)), color: "text-orange-400" },
+        { icon: Wallet, label: "Total Revenue", value: formatIdr(Number(stats.totalRevenueIdr || 0)), color: "text-primary" },
+        { icon: TrendingUp, label: "QRIS Revenue", value: formatIdr(Number(stats.revenueByMethod?.qris || 0)), color: "text-orange-400" },
       ]
     : [];
 
@@ -48,7 +47,7 @@ export default function AdminDashboard() {
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-display font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Platform overview</p>
+        <p className="text-muted-foreground mt-1">Overview platform</p>
       </div>
 
       {isLoading ? (
@@ -77,31 +76,31 @@ export default function AdminDashboard() {
 
           {stats?.recentTransactions && stats.recentTransactions.length > 0 && (
             <div>
-              <h2 className="text-xl font-display font-bold mb-4">Recent Transactions</h2>
+              <h2 className="text-xl font-display font-bold mb-4">Transaksi Terbaru</h2>
               <div className="rounded-xl border border-border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/30 border-b border-border">
                     <tr>
                       <th className="text-left p-3 text-muted-foreground font-medium">User</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium">Method</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium">Amount</th>
+                      <th className="text-left p-3 text-muted-foreground font-medium">Metode</th>
+                      <th className="text-left p-3 text-muted-foreground font-medium">Nominal</th>
                       <th className="text-left p-3 text-muted-foreground font-medium">Status</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium">Date</th>
+                      <th className="text-left p-3 text-muted-foreground font-medium">Tanggal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.recentTransactions.map((tx) => (
                       <tr key={tx.id} className="border-b border-border hover:bg-secondary/10">
                         <td className="p-3 font-medium">{tx.user?.username}</td>
-                        <td className="p-3 capitalize text-xs">{tx.method}</td>
-                        <td className="p-3 font-mono font-bold text-primary">{formatUsd(tx.amountUsd)}</td>
+                        <td className="p-3 capitalize text-xs uppercase font-mono">{tx.method}</td>
+                        <td className="p-3 font-mono font-bold text-primary">{formatIdr(tx.amountIdr)}</td>
                         <td className="p-3">
                           <Badge className={`text-xs border ${STATUS_BADGE[tx.status] || STATUS_BADGE.pending}`}>
                             {tx.status}
                           </Badge>
                         </td>
                         <td className="p-3 text-xs text-muted-foreground">
-                          {new Date(tx.createdAt).toLocaleDateString()}
+                          {new Date(tx.createdAt).toLocaleDateString("id-ID")}
                         </td>
                       </tr>
                     ))}

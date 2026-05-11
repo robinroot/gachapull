@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, packsTable, packCardsTable, cardsTable, gachaPullsTable, userCollectionTable, userCoinsTable, coinTransactionsTable } from "@workspace/db";
+import { db, packsTable, packCardsTable, cardsTable, gachaPullsTable, userCollectionTable, userBalanceTable, balanceTransactionsTable } from "@workspace/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { GachaPullBody, GetGachaHistoryQueryParams } from "@workspace/api-zod";
@@ -23,13 +23,13 @@ router.post("/gacha/pull", requireAuth, async (req, res) => {
 
     if (poolEntries.length === 0) { res.status(400).json({ error: "Pack has no cards" }); return; }
 
-    const totalCost = pack.priceCoins * pullCount;
-    const [wallet] = await db.select().from(userCoinsTable).where(eq(userCoinsTable.userId, userId)).limit(1);
-    if (!wallet || wallet.balance < totalCost) {
-      res.status(400).json({ error: "Insufficient coins" }); return;
+    const totalCost = pack.priceIdr * pullCount;
+    const [wallet] = await db.select().from(userBalanceTable).where(eq(userBalanceTable.userId, userId)).limit(1);
+    if (!wallet || wallet.balanceIdr < totalCost) {
+      res.status(400).json({ error: `Saldo tidak cukup. Kamu membutuhkan Rp ${totalCost.toLocaleString("id-ID")} tetapi hanya memiliki Rp ${(wallet?.balanceIdr || 0).toLocaleString("id-ID")}` });
+      return;
     }
 
-    // Normalize probabilities
     const totalProb = poolEntries.reduce((sum, e) => sum + parseFloat(e.probability), 0);
     const pulls: { card: typeof cardsTable.$inferSelect; isNew: boolean }[] = [];
 
@@ -61,21 +61,23 @@ router.post("/gacha/pull", requireAuth, async (req, res) => {
       pulls.push({ card, isNew });
     }
 
-    // Deduct coins
-    const newBalance = wallet.balance - totalCost;
+    const newBalance = wallet.balanceIdr - totalCost;
     const newTotalSpent = wallet.totalSpent + totalCost;
-    await db.update(userCoinsTable).set({ balance: newBalance, totalSpent: newTotalSpent, updatedAt: new Date() })
-      .where(eq(userCoinsTable.userId, userId));
+    await db.update(userBalanceTable)
+      .set({ balanceIdr: newBalance, totalSpent: newTotalSpent, updatedAt: new Date() })
+      .where(eq(userBalanceTable.userId, userId));
 
-    await db.insert(coinTransactionsTable).values({
-      userId, amount: -totalCost, type: "debit",
-      description: `Pulled ${pullCount}x from ${pack.name}`,
+    await db.insert(balanceTransactionsTable).values({
+      userId,
+      amountIdr: -totalCost,
+      type: "gacha_pull",
+      description: `Pull ${pullCount}x dari ${pack.name}`,
     });
 
     res.json({
       cards: pulls.map(p => ({ card: formatCard(p.card), isNew: p.isNew })),
-      coinsSpent: totalCost,
-      coinsRemaining: newBalance,
+      amountSpent: totalCost,
+      balanceRemaining: newBalance,
     });
   } catch (err) {
     req.log.error(err);

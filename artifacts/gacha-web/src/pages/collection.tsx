@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetCollection, useGetCollectionStats } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
-import { useTitle, formatCoins } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Layout } from "@/components/layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Coins, Package, Loader2, AlertTriangle, MapPin, Phone, User, ScrollText, ChevronDown } from "lucide-react";
+import { Wallet, Package, Loader2, AlertTriangle, MapPin, Phone, User, ScrollText, ChevronDown } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const RARITY_STYLES: Record<string, string> = {
@@ -84,9 +84,9 @@ function BuybackDialog({ open, onClose, card, buybackValue, onSuccess }: Buyback
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-display flex items-center gap-2">
-            <Coins className="w-5 h-5 text-primary" /> Jual Kartu (Buyback)
+            <Wallet className="w-5 h-5 text-primary" /> Jual Kartu (Buyback)
           </DialogTitle>
-          <DialogDescription>Tukarkan kartu ini menjadi koin</DialogDescription>
+          <DialogDescription>Tukarkan kartu ini menjadi saldo IDR</DialogDescription>
         </DialogHeader>
 
         {card && (
@@ -108,7 +108,7 @@ function BuybackDialog({ open, onClose, card, buybackValue, onSuccess }: Buyback
 
             <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
               <p className="text-sm text-muted-foreground mb-1">Kamu akan mendapatkan</p>
-              <p className="text-3xl font-display font-bold text-primary">{formatCoins(buybackValue)} Koin</p>
+              <p className="text-3xl font-display font-bold text-primary">{formatIdr(buybackValue)}</p>
               <p className="text-xs text-muted-foreground mt-1">(80% dari nilai kartu)</p>
             </div>
 
@@ -128,7 +128,7 @@ function BuybackDialog({ open, onClose, card, buybackValue, onSuccess }: Buyback
                 onClick={handleSell}
                 disabled={loading}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Coins className="w-4 h-4 mr-2" />}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wallet className="w-4 h-4 mr-2" />}
                 Jual Sekarang
               </Button>
             </div>
@@ -317,7 +317,7 @@ export default function CollectionPage() {
   }, [isAuthenticated, setLocation]);
 
   const handleBuybackSuccess = (coinsRefunded: number, _newBalance: number, cardName: string) => {
-    toast.success(`Berhasil menjual ${cardName} dan mendapatkan ${formatCoins(coinsRefunded)} koin!`);
+    toast.success(`Berhasil menjual ${cardName} dan mendapatkan ${formatIdr(coinsRefunded)}!`);
     refetch();
     queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
     queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -441,8 +441,8 @@ export default function CollectionPage() {
                           className="w-full h-7 text-[10px] border-primary/40 text-primary hover:bg-primary/10 flex items-center gap-1"
                           onClick={() => { setBuybackCard(item); setExpandedCard(null); }}
                         >
-                          <Coins className="w-3 h-3" />
-                          Jual ({formatCoins(item.buybackValue || 0)} koin)
+                          <Wallet className="w-3 h-3" />
+                          Jual ({formatIdr(item.buybackValue || 0)})
                         </Button>
                         <Button
                           size="sm"
@@ -467,20 +467,20 @@ export default function CollectionPage() {
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 rounded-xl border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2 mb-3">
-                <Coins className="w-5 h-5 text-primary" />
+                <Wallet className="w-5 h-5 text-primary" />
                 <h3 className="font-display font-bold text-primary">Buyback — Nilai per Rarity</h3>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Dapatkan <strong className="text-foreground">80% nilai kartu</strong> dalam bentuk koin saat kamu menjual kartu kembali.
+                Dapatkan <strong className="text-foreground">80% nilai kartu</strong> dalam bentuk saldo IDR saat kamu menjual kartu kembali.
               </p>
               <div className="grid grid-cols-5 gap-1.5 text-xs text-center">
                 {[
-                  { r: "Legendary", v: 400 }, { r: "Ultra Rare", v: 160 },
-                  { r: "Super Rare", v: 64 }, { r: "Rare", v: 32 }, { r: "Common", v: 16 },
+                  { r: "Legendary", v: "40rb" }, { r: "Ultra Rare", v: "16rb" },
+                  { r: "Super Rare", v: "6.4rb" }, { r: "Rare", v: "3.2rb" }, { r: "Common", v: "1.6rb" },
                 ].map(({ r, v }) => (
                   <div key={r} className="p-1.5 rounded bg-secondary/30">
                     <p className="text-muted-foreground leading-tight">{r}</p>
-                    <p className="font-bold text-primary mt-0.5">{v}</p>
+                    <p className="font-bold text-primary mt-0.5">Rp {v}</p>
                   </div>
                 ))}
               </div>

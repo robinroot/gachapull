@@ -12,8 +12,7 @@ function formatPack(pack: typeof packsTable.$inferSelect, cardCount = 0) {
     id: pack.id,
     name: pack.name,
     franchise: pack.franchise,
-    priceCoins: pack.priceCoins,
-    priceUsd: pack.priceUsd ? parseFloat(pack.priceUsd) : null,
+    priceIdr: pack.priceIdr,
     imageUrl: pack.imageUrl,
     description: pack.description,
     isActive: pack.isActive,
@@ -65,10 +64,7 @@ router.get("/packs/:packId", async (req, res) => {
     const [pack] = await db.select().from(packsTable).where(eq(packsTable.id, packId)).limit(1);
     if (!pack) { res.status(404).json({ error: "Pack not found" }); return; }
 
-    const poolEntries = await db.select({
-      card: cardsTable,
-      probability: packCardsTable.probability,
-    })
+    const poolEntries = await db.select({ card: cardsTable, probability: packCardsTable.probability })
       .from(packCardsTable)
       .innerJoin(cardsTable, eq(packCardsTable.cardId, cardsTable.id))
       .where(eq(packCardsTable.packId, packId));
@@ -86,12 +82,12 @@ router.get("/packs/:packId", async (req, res) => {
 });
 
 router.post("/packs", requireAdmin, async (req, res) => {
-  const parsed = CreatePackBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Validation error", message: parsed.error.message }); return; }
+  const { name, franchise, priceIdr, imageUrl, description, isActive } = req.body;
+  if (!name || !franchise || !priceIdr || !imageUrl) {
+    res.status(400).json({ error: "Validation error: name, franchise, priceIdr, imageUrl required" }); return;
+  }
   try {
-    const data: any = { ...parsed.data };
-    if (data.priceUsd != null) data.priceUsd = String(data.priceUsd);
-    const [pack] = await db.insert(packsTable).values(data).returning();
+    const [pack] = await db.insert(packsTable).values({ name, franchise, priceIdr, imageUrl, description, isActive: isActive ?? true }).returning();
     res.status(201).json(formatPack(pack, 0));
   } catch (err) {
     req.log.error(err);
@@ -102,12 +98,17 @@ router.post("/packs", requireAdmin, async (req, res) => {
 router.put("/packs/:packId", requireAdmin, async (req, res) => {
   const packId = parseInt(req.params.packId);
   if (isNaN(packId)) { res.status(400).json({ error: "Invalid pack ID" }); return; }
-  const parsed = CreatePackBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Validation error" }); return; }
   try {
-    const data: any = { ...parsed.data, updatedAt: new Date() };
-    if (data.priceUsd != null) data.priceUsd = String(data.priceUsd);
-    const [pack] = await db.update(packsTable).set(data).where(eq(packsTable.id, packId)).returning();
+    const { name, franchise, priceIdr, imageUrl, description, isActive } = req.body;
+    const updateData: Partial<typeof packsTable.$inferInsert> = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = name;
+    if (franchise !== undefined) updateData.franchise = franchise;
+    if (priceIdr !== undefined) updateData.priceIdr = priceIdr;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const [pack] = await db.update(packsTable).set(updateData).where(eq(packsTable.id, packId)).returning();
     if (!pack) { res.status(404).json({ error: "Pack not found" }); return; }
     const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(packCardsTable).where(eq(packCardsTable.packId, packId));
     res.json(formatPack(pack, count));
@@ -133,13 +134,9 @@ router.post("/packs/:packId/cards", requireAdmin, async (req, res) => {
   const packId = parseInt(req.params.packId);
   if (isNaN(packId)) { res.status(400).json({ error: "Invalid pack ID" }); return; }
   const parsed = AddCardToPackBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Validation error", message: parsed.error.message }); return; }
+  if (!parsed.success) { res.status(400).json({ error: "Validation error" }); return; }
   try {
-    await db.insert(packCardsTable).values({
-      packId,
-      cardId: parsed.data.cardId,
-      probability: String(parsed.data.probability),
-    });
+    await db.insert(packCardsTable).values({ packId, cardId: parsed.data.cardId, probability: String(parsed.data.probability) });
     res.status(201).json({ message: "Card added to pack" });
   } catch (err) {
     req.log.error(err);
@@ -157,7 +154,7 @@ router.delete("/packs/:packId/cards", requireAdmin, async (req, res) => {
     res.json({ message: "Card removed from pack" });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to remove card from pack" });
+    res.status(500).json({ error: "Failed to remove card" });
   }
 });
 

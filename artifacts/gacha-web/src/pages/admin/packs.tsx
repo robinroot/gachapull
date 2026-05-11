@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useListPacks, useCreatePack, useUpdatePack, useDeletePack } from "@workspace/api-client-react";
-import { useTitle, formatCoins } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,13 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Coins } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Wallet } from "lucide-react";
 
 type PackForm = {
   name: string;
   franchise: string;
-  priceCoins: string;
-  priceUsd: string;
+  priceIdr: string;
   imageUrl: string;
   description: string;
   isActive: boolean;
@@ -23,8 +22,7 @@ type PackForm = {
 const defaultForm: PackForm = {
   name: "",
   franchise: "pokemon",
-  priceCoins: "100",
-  priceUsd: "4.99",
+  priceIdr: "15000",
   imageUrl: "",
   description: "",
   isActive: true,
@@ -47,15 +45,14 @@ export default function AdminPacks() {
     setOpen(true);
   };
 
-  const openEdit = (pack: { id: number; name: string; franchise: string; priceCoins: number; priceUsd: number; imageUrl?: string | null; description?: string | null; isActive: boolean }) => {
+  const openEdit = (pack: { id: number; name: string; franchise: string; imageUrl?: string | null; description?: string | null; isActive: boolean; [key: string]: unknown }) => {
     setEditId(pack.id);
     setForm({
       name: pack.name,
       franchise: pack.franchise,
-      priceCoins: String(pack.priceCoins),
-      priceUsd: String(pack.priceUsd),
+      priceIdr: String((pack as any).priceIdr || 15000),
       imageUrl: pack.imageUrl || "",
-      description: pack.description || "",
+      description: (pack.description as string) || "",
       isActive: pack.isActive,
     });
     setOpen(true);
@@ -66,36 +63,35 @@ export default function AdminPacks() {
     const data = {
       name: form.name,
       franchise: form.franchise as "pokemon" | "onepiece",
-      priceCoins: parseInt(form.priceCoins),
-      priceUsd: parseFloat(form.priceUsd),
+      priceIdr: parseInt(form.priceIdr),
       imageUrl: form.imageUrl || null,
       description: form.description || null,
       isActive: form.isActive,
     };
     try {
       if (editId) {
-        await updatePack.mutateAsync({ packId: editId, data });
-        toast.success("Pack updated");
+        await updatePack.mutateAsync({ packId: editId, data: data as any });
+        toast.success("Pack diupdate");
       } else {
-        await createPack.mutateAsync({ data });
-        toast.success("Pack created");
+        await createPack.mutateAsync({ data: data as any });
+        toast.success("Pack dibuat");
       }
       setOpen(false);
       refetch();
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string }; message?: string };
-      toast.error(error?.data?.message || error?.message || "Failed");
+      const error = err as { data?: { message?: string; error?: string }; message?: string };
+      toast.error(error?.data?.error || error?.data?.message || error?.message || "Gagal");
     }
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Delete pack "${name}"?`)) return;
+    if (!confirm(`Hapus pack "${name}"?`)) return;
     try {
       await deletePack.mutateAsync({ packId: id });
-      toast.success("Pack deleted");
+      toast.success("Pack dihapus");
       refetch();
     } catch {
-      toast.error("Failed to delete");
+      toast.error("Gagal menghapus");
     }
   };
 
@@ -104,23 +100,23 @@ export default function AdminPacks() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-display font-bold">Packs</h1>
-          <p className="text-muted-foreground text-sm">{packs?.length || 0} packs total</p>
+          <p className="text-muted-foreground text-sm">{packs?.length || 0} pack total</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreate} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
-              Add Pack
+              Tambah Pack
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border max-w-lg">
             <DialogHeader>
-              <DialogTitle>{editId ? "Edit Pack" : "Add New Pack"}</DialogTitle>
+              <DialogTitle>{editId ? "Edit Pack" : "Tambah Pack Baru"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
-                  <Label>Name</Label>
+                  <Label>Nama</Label>
                   <Input
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -143,35 +139,25 @@ export default function AdminPacks() {
                   <Select value={form.isActive ? "active" : "inactive"} onValueChange={(v) => setForm((f) => ({ ...f, isActive: v === "active" }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="active">Aktif</SelectItem>
+                      <SelectItem value="inactive">Nonaktif</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Price (Coins)</Label>
+                <div className="space-y-2 col-span-2">
+                  <Label>Harga (IDR)</Label>
                   <Input
                     type="number"
-                    value={form.priceCoins}
-                    onChange={(e) => setForm((f) => ({ ...f, priceCoins: e.target.value }))}
+                    value={form.priceIdr}
+                    onChange={(e) => setForm((f) => ({ ...f, priceIdr: e.target.value }))}
                     required
-                    min="1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Price (USD)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.priceUsd}
-                    onChange={(e) => setForm((f) => ({ ...f, priceUsd: e.target.value }))}
-                    required
-                    min="0"
+                    min="1000"
+                    step="1000"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Image URL</Label>
+                <Label>URL Gambar</Label>
                 <Input
                   value={form.imageUrl}
                   onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
@@ -179,11 +165,11 @@ export default function AdminPacks() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>Deskripsi</Label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Pack description..."
+                  placeholder="Deskripsi pack..."
                 />
               </div>
               <Button
@@ -191,8 +177,8 @@ export default function AdminPacks() {
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold"
                 disabled={createPack.isPending || updatePack.isPending}
               >
-                {createPack.isPending || updatePack.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {editId ? "Update Pack" : "Create Pack"}
+                {(createPack.isPending || updatePack.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                {editId ? "Update Pack" : "Buat Pack"}
               </Button>
             </form>
           </DialogContent>
@@ -212,9 +198,9 @@ export default function AdminPacks() {
               <tr>
                 <th className="text-left p-3 text-muted-foreground font-medium">Pack</th>
                 <th className="text-left p-3 text-muted-foreground font-medium">Franchise</th>
-                <th className="text-left p-3 text-muted-foreground font-medium">Price</th>
+                <th className="text-left p-3 text-muted-foreground font-medium">Harga</th>
                 <th className="text-left p-3 text-muted-foreground font-medium">Status</th>
-                <th className="text-right p-3 text-muted-foreground font-medium">Actions</th>
+                <th className="text-right p-3 text-muted-foreground font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -231,22 +217,21 @@ export default function AdminPacks() {
                       <span className="font-medium">{pack.name}</span>
                     </div>
                   </td>
-                  <td className="p-3 capitalize">{pack.franchise === "onepiece" ? "One Piece" : "Pokemon"}</td>
+                  <td className="p-3 capitalize">{(pack as any).franchise === "onepiece" ? "One Piece" : "Pokemon"}</td>
                   <td className="p-3">
                     <div className="flex items-center gap-1 text-primary font-mono font-bold text-xs">
-                      <Coins className="w-3 h-3" />
-                      {formatCoins(pack.priceCoins)}
+                      <Wallet className="w-3 h-3" />
+                      {formatIdr((pack as any).priceIdr || 0)}
                     </div>
-                    <span className="text-xs text-muted-foreground">${pack.priceUsd}</span>
                   </td>
                   <td className="p-3">
                     <Badge variant={pack.isActive ? "default" : "secondary"} className={pack.isActive ? "bg-green-500/20 text-green-400 border-green-500/30" : ""}>
-                      {pack.isActive ? "Active" : "Inactive"}
+                      {pack.isActive ? "Aktif" : "Nonaktif"}
                     </Badge>
                   </td>
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(pack)}>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(pack as any)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(pack.id, pack.name)}>

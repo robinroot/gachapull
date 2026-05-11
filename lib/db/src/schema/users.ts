@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, pgEnum, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,10 +15,10 @@ export const usersTable = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const userCoinsTable = pgTable("user_coins", {
+export const userBalanceTable = pgTable("user_balance", {
   userId: integer("user_id").primaryKey().references(() => usersTable.id, { onDelete: "cascade" }),
-  balance: integer("balance").notNull().default(0),
-  totalEarned: integer("total_earned").notNull().default(0),
+  balanceIdr: integer("balance_idr").notNull().default(0),
+  totalTopup: integer("total_topup").notNull().default(0),
   totalSpent: integer("total_spent").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -26,4 +26,4 @@ export const userCoinsTable = pgTable("user_coins", {
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;
-export type UserCoins = typeof userCoinsTable.$inferSelect;
+export type UserBalance = typeof userBalanceTable.$inferSelect;

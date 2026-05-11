@@ -1,5 +1,5 @@
 import { useGetLeaderboard } from "@workspace/api-client-react";
-import { useTitle, formatUsd } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Layout } from "@/components/layout";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Crown } from "lucide-react";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 type LeaderboardEntry = {
   rank: number;
   user: { id: number; username: string; avatarUrl: string | null };
-  totalSpentUsd: number;
+  totalSpentIdr: number;
   totalPulls: number;
   topCard?: { name: string; rarity: string; imageUrl?: string | null } | null;
 };
@@ -16,7 +16,6 @@ type LeaderboardEntry = {
 export default function LeaderboardPage() {
   useTitle("Leaderboard");
   const { data, isLoading } = useGetLeaderboard();
-
   const leaderboard = (data || []) as unknown as LeaderboardEntry[];
 
   const getRankIcon = (rank: number) => {
@@ -41,7 +40,7 @@ export default function LeaderboardPage() {
             <Trophy className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-4xl font-display font-bold">Leaderboard</h1>
-          <p className="text-muted-foreground mt-2">Top collectors ranked by total spending</p>
+          <p className="text-muted-foreground mt-2">Top kolektor berdasarkan total pengeluaran</p>
         </div>
 
         {isLoading ? (
@@ -52,7 +51,7 @@ export default function LeaderboardPage() {
           </div>
         ) : leaderboard.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground">No rankings yet. Be the first collector!</p>
+            <p className="text-muted-foreground">Belum ada ranking. Jadilah kolektor pertama!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -86,7 +85,7 @@ export default function LeaderboardPage() {
 
                   <div className="text-right shrink-0">
                     <div className="font-mono font-bold text-primary text-lg">
-                      {formatUsd(Number(entry.totalSpentUsd || 0))}
+                      {formatIdr(Number(entry.totalSpentIdr || 0))}
                     </div>
                     <div className="text-xs text-muted-foreground">total spent</div>
                   </div>

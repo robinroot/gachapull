@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { useGetPack, useGachaPull } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
-import { useTitle, formatCoins } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Coins, Sparkles, ArrowLeft, RefreshCw, RotateCcw } from "lucide-react";
+import { Wallet, Sparkles, ArrowLeft, RefreshCw, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const RARITY_STYLES: Record<string, { border: string; glow: string; badge: string; label: string }> = {
@@ -27,7 +27,7 @@ type PulledCard = {
   isNew?: boolean;
 };
 
-type PullState = "idle" | "pulling" | "reveal" | "done";
+type PullState = "idle" | "pulling" | "reveal";
 
 export default function GachaPage() {
   const { packId } = useParams<{ packId: string }>();
@@ -43,18 +43,26 @@ export default function GachaPage() {
   const [flipped, setFlipped] = useState<boolean[]>([]);
   const [quantity, setQuantity] = useState<1 | 10>(1);
 
+  const packData = pack as any;
+  const priceIdr: number = packData?.priceIdr || 0;
+  const balanceIdr: number = (user as any)?.balanceIdr || 0;
+  const totalCost = priceIdr * quantity;
+  const canAfford = balanceIdr >= totalCost;
+
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/login");
-    }
+    if (!isAuthenticated) setLocation("/login");
   }, [isAuthenticated, setLocation]);
 
   const handlePull = async () => {
     if (!pack) return;
+    if (!canAfford) {
+      toast.error(`Saldo tidak cukup. Kamu butuh ${formatIdr(totalCost)} tapi hanya punya ${formatIdr(balanceIdr)}`);
+      return;
+    }
     setPullState("pulling");
     try {
       const result = await pullMutation.mutateAsync({ data: { packId: Number(packId), pullCount: quantity } });
-      const flatCards = (result.cards as Array<{ card: PulledCard; isNew: boolean }>).map((item) => ({
+      const flatCards = ((result as any).cards as Array<{ card: PulledCard; isNew: boolean }>).map((item) => ({
         ...item.card,
         isNew: item.isNew,
       }));
@@ -63,8 +71,8 @@ export default function GachaPage() {
       setCurrentCardIndex(0);
       setTimeout(() => setPullState("reveal"), 600);
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string }; message?: string };
-      toast.error(error?.data?.message || error?.message || "Pull failed");
+      const error = err as { data?: { error?: string; message?: string }; message?: string };
+      toast.error(error?.data?.error || error?.data?.message || error?.message || "Pull gagal");
       setPullState("idle");
     }
   };
@@ -93,7 +101,7 @@ export default function GachaPage() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-10 text-center">
-          <p className="text-muted-foreground">Loading pack...</p>
+          <p className="text-muted-foreground">Memuat pack...</p>
         </div>
       </Layout>
     );
@@ -107,13 +115,15 @@ export default function GachaPage() {
           <Link href="/packs">
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Packs
+              Kembali ke Packs
             </Button>
           </Link>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
-            <Coins className="w-4 h-4 text-primary" />
-            <span className="font-mono font-bold text-primary">{formatCoins(user?.coinsBalance || 0)}</span>
-          </div>
+          <Link href="/wallet">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border hover:bg-secondary transition-colors cursor-pointer">
+              <Wallet className="w-4 h-4 text-primary" />
+              <span className="font-mono font-bold text-primary">{formatIdr(balanceIdr)}</span>
+            </div>
+          </Link>
         </div>
 
         {/* Pack info */}
@@ -121,10 +131,10 @@ export default function GachaPage() {
           <h1 className="text-3xl font-display font-bold mb-2">{pack.name}</h1>
           <div className="flex items-center justify-center gap-2">
             <Badge variant="secondary" className="capitalize">
-              {pack.franchise === "onepiece" ? "One Piece" : "Pokemon"}
+              {(pack as any).franchise === "onepiece" ? "One Piece" : "Pokemon"}
             </Badge>
             <span className="text-muted-foreground text-sm">
-              {pack.priceCoins} coins per pull
+              {formatIdr(priceIdr)} per pull
             </span>
           </div>
         </div>
@@ -133,10 +143,12 @@ export default function GachaPage() {
         {pullState === "idle" && (
           <div className="flex flex-col items-center gap-8">
             <div className="relative">
-              <div className="w-64 h-64 rounded-2xl border-2 border-primary/30 bg-card flex items-center justify-center cursor-pointer hover:border-primary/70 transition-all duration-300 hover:shadow-[0_0_40px_hsla(43,96%,58%,0.3)]"
-                onClick={handlePull}>
+              <div
+                className="w-64 h-64 rounded-2xl border-2 border-primary/30 bg-card flex items-center justify-center cursor-pointer hover:border-primary/70 transition-all duration-300 hover:shadow-[0_0_40px_hsla(43,96%,58%,0.3)]"
+                onClick={handlePull}
+              >
                 <img
-                  src={pack.imageUrl || ""}
+                  src={(pack as any).imageUrl || ""}
                   alt={pack.name}
                   className="w-48 h-48 object-contain"
                   onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/200x200/1a1a2e/FFD700?text=Pack"; }}
@@ -145,7 +157,7 @@ export default function GachaPage() {
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground font-bold px-4">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  Click to Pull!
+                  Klik untuk Pull!
                 </Badge>
               </div>
             </div>
@@ -170,22 +182,29 @@ export default function GachaPage() {
 
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 text-lg font-bold mb-1">
-                <Coins className="w-5 h-5 text-primary" />
-                <span className="text-primary">{pack.priceCoins * quantity}</span>
-                <span className="text-muted-foreground">coins</span>
+                <Wallet className="w-5 h-5 text-primary" />
+                <span className={cn("font-mono", canAfford ? "text-primary" : "text-destructive")}>{formatIdr(totalCost)}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                You have {formatCoins(user?.coinsBalance || 0)} coins
+              <p className={cn("text-xs", canAfford ? "text-muted-foreground" : "text-destructive font-medium")}>
+                {canAfford
+                  ? `Saldo kamu: ${formatIdr(balanceIdr)}`
+                  : `Saldo tidak cukup! Kamu hanya punya ${formatIdr(balanceIdr)}`}
               </p>
+              {!canAfford && (
+                <Link href="/wallet">
+                  <Button variant="link" size="sm" className="mt-1 text-primary">Top-up saldo →</Button>
+                </Link>
+              )}
             </div>
 
             <Button
               size="lg"
               onClick={handlePull}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-12 shadow-[0_0_20px_hsla(43,96%,58%,0.4)]"
+              disabled={!canAfford}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-12 shadow-[0_0_20px_hsla(43,96%,58%,0.4)] disabled:opacity-50"
             >
               <Sparkles className="w-5 h-5 mr-2" />
-              Pull {quantity === 1 ? "1 Card" : "10 Cards"}!
+              Pull {quantity === 1 ? "1 Kartu" : "10 Kartu"}!
             </Button>
           </div>
         )}
@@ -198,7 +217,7 @@ export default function GachaPage() {
               <div className="absolute inset-4 rounded-full border-4 border-primary/20 border-b-primary animate-spin" style={{ animationDirection: "reverse", animationDuration: "0.8s" }} />
               <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-primary animate-pulse" />
             </div>
-            <p className="text-xl font-display font-bold text-primary animate-pulse">Drawing cards...</p>
+            <p className="text-xl font-display font-bold text-primary animate-pulse">Menarik kartu...</p>
           </div>
         )}
 
@@ -239,7 +258,7 @@ export default function GachaPage() {
                           </Badge>
                           {card.isNew && (
                             <Badge className="text-[9px] px-1.5 mt-1 ml-1 bg-primary/20 text-primary border-primary/50">
-                              NEW
+                              BARU
                             </Badge>
                           )}
                         </div>
@@ -261,26 +280,25 @@ export default function GachaPage() {
 
             {allFlipped ? (
               <div className="text-center space-y-4">
-                <p className="text-muted-foreground">Cards added to your collection!</p>
+                <p className="text-muted-foreground">Kartu ditambahkan ke koleksimu!</p>
                 <div className="flex justify-center gap-4">
                   <Button onClick={handleReset} className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Pull Again
+                    Pull Lagi
                   </Button>
                   <Link href="/collection">
-                    <Button variant="outline">View Collection</Button>
+                    <Button variant="outline">Lihat Koleksi</Button>
                   </Link>
                 </div>
               </div>
             ) : (
               <div className="text-center">
                 <Button variant="ghost" onClick={() => {
-                  const newFlipped = new Array(cards.length).fill(true);
-                  setFlipped(newFlipped);
+                  setFlipped(new Array(cards.length).fill(true));
                   setCurrentCardIndex(cards.length);
                 }}>
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  Reveal All
+                  Buka Semua
                 </Button>
               </div>
             )}

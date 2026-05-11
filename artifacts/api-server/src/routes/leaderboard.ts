@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, userCoinsTable, gachaPullsTable, cardsTable, userCollectionTable } from "@workspace/db";
+import { db, usersTable, userBalanceTable, gachaPullsTable, cardsTable, userCollectionTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { formatCard } from "./cards";
 
@@ -12,18 +12,17 @@ router.get("/leaderboard", async (req, res) => {
       userId: usersTable.id,
       username: usersTable.username,
       avatarUrl: usersTable.avatarUrl,
-      totalSpent: userCoinsTable.totalSpent,
+      totalSpent: userBalanceTable.totalSpent,
     })
       .from(usersTable)
-      .innerJoin(userCoinsTable, eq(usersTable.id, userCoinsTable.userId))
-      .orderBy(desc(userCoinsTable.totalSpent))
+      .leftJoin(userBalanceTable, eq(usersTable.id, userBalanceTable.userId))
+      .orderBy(desc(userBalanceTable.totalSpent))
       .limit(limit);
 
     const leaderboard = await Promise.all(results.map(async (u, idx) => {
       const [{ pullCount }] = await db.select({ pullCount: sql<number>`count(*)::int` })
         .from(gachaPullsTable).where(eq(gachaPullsTable.userId, u.userId));
 
-      // Find top card (rarest card in collection)
       const topEntry = await db.select({ card: cardsTable })
         .from(userCollectionTable)
         .innerJoin(cardsTable, eq(userCollectionTable.cardId, cardsTable.id))
@@ -34,7 +33,7 @@ router.get("/leaderboard", async (req, res) => {
       return {
         rank: idx + 1,
         user: { id: u.userId, username: u.username, avatarUrl: u.avatarUrl },
-        totalSpentUsd: Math.round(u.totalSpent / 100 * 100) / 100,
+        totalSpentIdr: u.totalSpent || 0,
         totalPulls: pullCount,
         topCard: topEntry[0] ? formatCard(topEntry[0].card) : null,
       };

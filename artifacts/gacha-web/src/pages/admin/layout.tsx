@@ -8,7 +8,7 @@ import {
   Users,
   Receipt,
   Settings,
-  Coins,
+  Wallet,
   ShieldAlert,
   ChevronRight,
   Truck,
@@ -21,9 +21,8 @@ const NAV_ITEMS = [
   { href: "/admin/cards", label: "Cards", icon: CreditCard },
   { href: "/admin/packs", label: "Packs", icon: Package },
   { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/transactions", label: "Transactions", icon: Receipt },
-  { href: "/admin/coin-packages", label: "Coin Packages", icon: Coins },
-  { href: "/admin/physical-requests", label: "Physical Requests", icon: Truck },
+  { href: "/admin/transactions", label: "Transaksi", icon: Receipt },
+  { href: "/admin/physical-requests", label: "Fisik Requests", icon: Truck },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -54,7 +53,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
       <aside className="w-64 shrink-0 border-r border-border bg-card/50 flex flex-col">
         <div className="p-6 border-b border-border">
           <Link href="/" className="flex items-center gap-2">
@@ -88,7 +86,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto">
         <div className="p-6 md:p-8">
           {children}

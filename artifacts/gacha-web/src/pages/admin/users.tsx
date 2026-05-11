@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { useListAdminUsers, useUpdateAdminUser } from "@workspace/api-client-react";
-import { useTitle, formatCoins } from "@/lib/helpers";
+import { useTitle, formatIdr } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { User, Coins, ShieldAlert } from "lucide-react";
+import { User, Wallet, ShieldAlert } from "lucide-react";
 
 type AdminUser = {
   id: number;
   username: string;
   email: string;
   role: string;
-  coinsBalance: number;
-  totalSpentUsd: number;
+  balanceIdr: number;
+  totalSpent: number;
+  totalPulls: number;
   createdAt?: string;
 };
 
@@ -34,12 +35,12 @@ export default function AdminUsers() {
         userId: selectedUser.id,
         data: { role: newRole as "user" | "admin" },
       });
-      toast.success(`Updated ${selectedUser.username} to ${newRole}`);
+      toast.success(`${selectedUser.username} diupdate ke role ${newRole}`);
       setSelectedUser(null);
       refetch();
     } catch (err: unknown) {
       const error = err as { data?: { message?: string }; message?: string };
-      toast.error(error?.data?.message || error?.message || "Failed");
+      toast.error(error?.data?.message || error?.message || "Gagal");
     }
   };
 
@@ -47,7 +48,7 @@ export default function AdminUsers() {
     <div>
       <div className="mb-6">
         <h1 className="text-3xl font-display font-bold">Users</h1>
-        <p className="text-muted-foreground text-sm">{users.length} users</p>
+        <p className="text-muted-foreground text-sm">{users.length} pengguna</p>
       </div>
 
       {isLoading ? (
@@ -63,9 +64,10 @@ export default function AdminUsers() {
               <tr>
                 <th className="text-left p-3 text-muted-foreground font-medium">User</th>
                 <th className="text-left p-3 text-muted-foreground font-medium">Role</th>
-                <th className="text-left p-3 text-muted-foreground font-medium">Balance</th>
-                <th className="text-left p-3 text-muted-foreground font-medium">Joined</th>
-                <th className="text-right p-3 text-muted-foreground font-medium">Actions</th>
+                <th className="text-left p-3 text-muted-foreground font-medium">Saldo</th>
+                <th className="text-left p-3 text-muted-foreground font-medium">Total Spent</th>
+                <th className="text-left p-3 text-muted-foreground font-medium">Bergabung</th>
+                <th className="text-right p-3 text-muted-foreground font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -90,12 +92,15 @@ export default function AdminUsers() {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1 text-primary font-mono text-xs font-bold">
-                      <Coins className="w-3 h-3" />
-                      {formatCoins(user.coinsBalance || 0)}
+                      <Wallet className="w-3 h-3" />
+                      {formatIdr(user.balanceIdr || 0)}
                     </div>
                   </td>
+                  <td className="p-3 font-mono text-xs text-muted-foreground">
+                    {formatIdr(user.totalSpent || 0)}
+                  </td>
                   <td className="p-3 text-xs text-muted-foreground">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString("id-ID") : "—"}
                   </td>
                   <td className="p-3 text-right">
                     <Button
@@ -116,7 +121,7 @@ export default function AdminUsers() {
       <Dialog open={!!selectedUser} onOpenChange={(v) => !v && setSelectedUser(null)}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Edit User Role: {selectedUser?.username}</DialogTitle>
+            <DialogTitle>Edit Role: {selectedUser?.username}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <Select value={newRole} onValueChange={setNewRole}>

@@ -24,7 +24,7 @@ export const cardBuybacksTable = pgTable("card_buybacks", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   cardId: integer("card_id").notNull().references(() => cardsTable.id),
-  coinsRefunded: integer("coins_refunded").notNull(),
+  amountIdr: integer("amount_idr").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

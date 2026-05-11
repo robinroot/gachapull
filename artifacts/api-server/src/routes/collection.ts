@@ -1,19 +1,19 @@
 import { Router } from "express";
-import { db, userCollectionTable, cardsTable, userCoinsTable, coinTransactionsTable, cardBuybacksTable, physicalCardRequestsTable } from "@workspace/db";
+import { db, userCollectionTable, cardsTable, userBalanceTable, balanceTransactionsTable, cardBuybacksTable, physicalCardRequestsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { formatCard } from "./cards";
 
 const router = Router();
 
-const RARITY_COIN_VALUE: Record<string, number> = {
-  legendary: 500,
-  ultra_rare: 200,
-  super_rare: 80,
-  rare: 40,
-  common: 20,
+// IDR value per rarity (buyback = 80%)
+const RARITY_IDR_VALUE: Record<string, number> = {
+  legendary: 50000,
+  ultra_rare: 20000,
+  super_rare: 8000,
+  rare: 4000,
+  common: 2000,
 };
-
 const BUYBACK_RATE = 0.8;
 
 router.get("/collection", requireAuth, async (req, res) => {
@@ -36,7 +36,7 @@ router.get("/collection", requireAuth, async (req, res) => {
       count: i.collection.count,
       firstObtainedAt: i.collection.firstObtainedAt.toISOString(),
       collectionId: i.collection.id,
-      buybackValue: Math.floor((RARITY_COIN_VALUE[i.card.rarity] || 20) * BUYBACK_RATE),
+      buybackValue: Math.floor((RARITY_IDR_VALUE[i.card.rarity] || 2000) * BUYBACK_RATE),
     })));
   } catch (err) {
     req.log.error(err);
@@ -63,7 +63,7 @@ router.get("/collection/stats", requireAuth, async (req, res) => {
       if (item.card.rarity in byRarity) byRarity[item.card.rarity] += item.collection.count;
     }
 
-    res.json({ totalCards, uniqueCards, byFranchise, byRarity, totalPulls: totalCards });
+    res.json({ totalCards, uniqueCards, byFranchise, byRarity });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to fetch stats" });
@@ -73,8 +73,7 @@ router.get("/collection/stats", requireAuth, async (req, res) => {
 router.post("/collection/buyback", requireAuth, async (req, res) => {
   const { cardId } = req.body;
   if (!cardId || typeof cardId !== "number" || cardId <= 0) {
-    res.status(400).json({ error: "Invalid cardId" });
-    return;
+    res.status(400).json({ error: "Invalid cardId" }); return;
   }
   const userId = req.user!.userId;
 
@@ -84,19 +83,13 @@ router.post("/collection/buyback", requireAuth, async (req, res) => {
       .where(and(eq(userCollectionTable.userId, userId), eq(userCollectionTable.cardId, cardId)))
       .limit(1);
 
-    if (!collectionEntry) {
-      res.status(404).json({ error: "Card not in your collection" });
-      return;
-    }
+    if (!collectionEntry) { res.status(404).json({ error: "Kartu tidak ada di koleksimu" }); return; }
 
     const [card] = await db.select().from(cardsTable).where(eq(cardsTable.id, cardId)).limit(1);
-    if (!card) {
-      res.status(404).json({ error: "Card not found" });
-      return;
-    }
+    if (!card) { res.status(404).json({ error: "Kartu tidak ditemukan" }); return; }
 
-    const baseValue = RARITY_COIN_VALUE[card.rarity] || 20;
-    const coinsRefunded = Math.floor(baseValue * BUYBACK_RATE);
+    const baseValue = RARITY_IDR_VALUE[card.rarity] || 2000;
+    const amountRefunded = Math.floor(baseValue * BUYBACK_RATE);
 
     if (collectionEntry.count <= 1) {
       await db.delete(userCollectionTable).where(eq(userCollectionTable.id, collectionEntry.id));
@@ -106,31 +99,31 @@ router.post("/collection/buyback", requireAuth, async (req, res) => {
         .where(eq(userCollectionTable.id, collectionEntry.id));
     }
 
-    const [wallet] = await db.select().from(userCoinsTable).where(eq(userCoinsTable.userId, userId)).limit(1);
-    const newBalance = (wallet?.balance || 0) + coinsRefunded;
+    const [wallet] = await db.select().from(userBalanceTable).where(eq(userBalanceTable.userId, userId)).limit(1);
+    const newBalance = (wallet?.balanceIdr || 0) + amountRefunded;
 
-    await db.update(userCoinsTable)
-      .set({ balance: newBalance, totalEarned: (wallet?.totalEarned || 0) + coinsRefunded })
-      .where(eq(userCoinsTable.userId, userId));
+    await db.update(userBalanceTable)
+      .set({ balanceIdr: newBalance, totalTopup: (wallet?.totalTopup || 0) + amountRefunded, updatedAt: new Date() })
+      .where(eq(userBalanceTable.userId, userId));
 
-    await db.insert(cardBuybacksTable).values({ userId, cardId, coinsRefunded });
+    await db.insert(cardBuybacksTable).values({ userId, cardId, amountIdr: amountRefunded });
 
-    await db.insert(coinTransactionsTable).values({
+    await db.insert(balanceTransactionsTable).values({
       userId,
-      amount: coinsRefunded,
-      type: "earned",
+      amountIdr: amountRefunded,
+      type: "buyback",
       description: `Buyback: ${card.name} (${card.rarity.replace("_", " ")})`,
     });
 
     res.json({
-      message: `Sold ${card.name} for ${coinsRefunded} coins`,
-      coinsRefunded,
+      message: `Berhasil menjual ${card.name} seharga Rp ${amountRefunded.toLocaleString("id-ID")}`,
+      amountRefunded,
       newBalance,
       cardName: card.name,
     });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Buyback failed" });
+    res.status(500).json({ error: "Buyback gagal" });
   }
 });
 
@@ -138,12 +131,10 @@ router.post("/collection/request-physical", requireAuth, async (req, res) => {
   const { cardId, fullName, phone, address, city, province, postalCode, country } = req.body;
 
   if (!cardId || typeof cardId !== "number" || cardId <= 0) {
-    res.status(400).json({ error: "Invalid cardId" });
-    return;
+    res.status(400).json({ error: "Invalid cardId" }); return;
   }
   if (!fullName || !phone || !address || !city || !province || !postalCode) {
-    res.status(400).json({ error: "Missing required fields: fullName, phone, address, city, province, postalCode" });
-    return;
+    res.status(400).json({ error: "Semua field wajib diisi" }); return;
   }
 
   const userId = req.user!.userId;
@@ -154,54 +145,38 @@ router.post("/collection/request-physical", requireAuth, async (req, res) => {
       .where(and(eq(userCollectionTable.userId, userId), eq(userCollectionTable.cardId, cardId)))
       .limit(1);
 
-    if (!collectionEntry) {
-      res.status(404).json({ error: "Card not in your collection" });
-      return;
-    }
+    if (!collectionEntry) { res.status(404).json({ error: "Kartu tidak ada di koleksimu" }); return; }
 
     const [card] = await db.select().from(cardsTable).where(eq(cardsTable.id, cardId)).limit(1);
-    if (!card) {
-      res.status(404).json({ error: "Card not found" });
-      return;
-    }
+    if (!card) { res.status(404).json({ error: "Kartu tidak ditemukan" }); return; }
 
     const [existing] = await db.select()
       .from(physicalCardRequestsTable)
-      .where(
-        and(
-          eq(physicalCardRequestsTable.userId, userId),
-          eq(physicalCardRequestsTable.cardId, cardId),
-          sql`status NOT IN ('delivered', 'cancelled')`
-        )
-      )
+      .where(and(
+        eq(physicalCardRequestsTable.userId, userId),
+        eq(physicalCardRequestsTable.cardId, cardId),
+        sql`status NOT IN ('delivered', 'cancelled')`
+      ))
       .limit(1);
 
     if (existing) {
-      res.status(400).json({ error: "You already have a pending request for this card" });
-      return;
+      res.status(400).json({ error: "Kamu sudah punya permintaan aktif untuk kartu ini" }); return;
     }
 
     const [request] = await db.insert(physicalCardRequestsTable).values({
-      userId,
-      cardId,
-      fullName,
-      phone,
-      address,
-      city,
-      province,
-      postalCode,
+      userId, cardId, fullName, phone, address, city, province, postalCode,
       country: country || "Indonesia",
     }).returning();
 
     res.status(201).json({
-      message: "Physical card request submitted successfully",
+      message: "Permintaan kartu fisik berhasil diajukan",
       requestId: request.id,
       card: { name: card.name, rarity: card.rarity },
       status: "pending",
     });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to submit request" });
+    res.status(500).json({ error: "Gagal mengajukan permintaan" });
   }
 });
 
@@ -232,7 +207,7 @@ router.get("/collection/physical-requests", requireAuth, async (req, res) => {
     })));
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch requests" });
+    res.status(500).json({ error: "Gagal mengambil data permintaan" });
   }
 });
 

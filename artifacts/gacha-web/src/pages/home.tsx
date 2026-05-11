@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGetFeaturedPacks, useGetFeaturedCards } from "@workspace/api-client-react";
 import { useTitle } from "@/lib/helpers";
-import { Sparkles, Coins, Trophy, Package, Star, Zap } from "lucide-react";
+import { Sparkles, Wallet, Trophy, Package, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const RARITY_STYLES: Record<string, string> = {
@@ -66,7 +66,7 @@ export default function HomePage() {
             {[
               { icon: Package, label: "Card Packs", value: "4+" },
               { icon: Star, label: "Unique Cards", value: "30+" },
-              { icon: Coins, label: "Coin Packages", value: "6" },
+              { icon: Wallet, label: "Top-up IDR", value: "6" },
               { icon: Trophy, label: "Rarity Tiers", value: "5" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="text-center">
@@ -110,11 +110,10 @@ export default function HomePage() {
                   </Badge>
                   <h3 className="font-bold text-sm">{pack.name}</h3>
                   <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-1 text-primary font-mono font-bold">
-                      <Coins className="w-4 h-4" />
-                      {pack.priceCoins}
+                    <div className="flex items-center gap-1 text-primary font-mono font-bold text-sm">
+                      <Wallet className="w-4 h-4" />
+                      {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format((pack as any).priceIdr || 0)}
                     </div>
-                    <span className="text-xs text-muted-foreground">${pack.priceUsd}</span>
                   </div>
                 </div>
               </div>
@@ -165,7 +164,7 @@ export default function HomePage() {
       <section className="py-20 container mx-auto px-4 text-center">
         <h2 className="text-4xl font-display font-bold mb-4">Ready to Start Collecting?</h2>
         <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-          Create your account, get your coins, and start pulling cards today!
+          Daftar sekarang, isi saldo IDR, dan mulai pull kartu impianmu!
         </p>
         <Link href="/register">
           <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-10 shadow-[0_0_20px_hsla(43,96%,58%,0.4)]">
