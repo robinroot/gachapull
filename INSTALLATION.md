@@ -98,9 +98,21 @@ File ini berisi:
 - 4 pack: Pokemon Base Set (Rp 15.000), Pokemon Legendary (Rp 50.000), One Piece Grand Line (Rp 25.000), One Piece Emperor (Rp 50.000)
 - Pengaturan payment default
 
-### 3c. Buat Admin User
+### 3c. Buat File `.env` di Root Proyek
 
-Setelah database siap, buat akun admin:
+Sebelum menjalankan script apapun, buat file `.env` di root folder proyek:
+
+```env
+DATABASE_URL=postgresql://gachapull_user:password_anda@localhost:5432/gachapull
+SESSION_SECRET=ganti_dengan_string_acak_panjang
+JWT_SECRET=ganti_dengan_jwt_secret_acak
+```
+
+> Script `reset-admin` akan otomatis membaca file `.env` ini.
+
+### 3d. Buat Admin User
+
+Setelah `.env` siap dan database sudah diimport:
 
 ```bash
 pnpm --filter @workspace/scripts run reset-admin

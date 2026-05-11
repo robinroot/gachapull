@@ -1,3 +1,26 @@
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// Auto-load .env from project root (2 levels up from scripts/src/)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+try {
+  const envPath = resolve(__dirname, "../../.env");
+  const envFile = readFileSync(envPath, "utf-8");
+  for (const line of envFile.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+    if (key && !process.env[key]) process.env[key] = val;
+  }
+  console.log("Loaded .env from project root");
+} catch {
+  // .env not found — DATABASE_URL must be set in environment
+}
+
 import { db } from "@workspace/db";
 import { usersTable, userBalanceTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
@@ -18,10 +41,7 @@ if (existing.length > 0) {
     const newHash = await bcryptjs.hash(password, 12);
     await db.update(usersTable).set({ passwordHash: newHash, role: "admin" }).where(eq(usersTable.email, email));
     console.log("Updated password hash");
-    const valid2 = await bcryptjs.compare(password, newHash);
-    console.log("New hash valid:", valid2);
   } else {
-    // Ensure role is admin
     await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.email, email));
     console.log("Admin role confirmed");
   }
