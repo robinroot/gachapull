@@ -69,28 +69,18 @@ GRANT ALL PRIVILEGES ON DATABASE gachapull TO gachapull_user;
 
 File `gachapull_database.sql` sudah disertakan dalam paket ini.
 
-> **Penting:** Import **harus dilakukan sebagai superuser PostgreSQL** (`postgres`), bukan sebagai user biasa, agar bisa membuat tabel di schema `public`.
+> **Penting:** Import **harus dilakukan sebagai superuser PostgreSQL** (`postgres`), bukan sebagai user biasa.
 
 ```bash
 # Import sebagai superuser postgres (WAJIB)
 psql -U postgres -d gachapull -f gachapull_database.sql
 ```
 
-Jika muncul error `permission denied for schema public`, jalankan dulu perintah ini sebagai superuser:
+File SQL ini sudah otomatis menjalankan:
+- `GRANT ALL ON SCHEMA public TO PUBLIC` (untuk PostgreSQL 15+)
+- `GRANT ALL PRIVILEGES ON ALL TABLES ...` untuk `gachapull_user`
 
-```sql
--- Jalankan sebagai postgres superuser
-GRANT ALL ON SCHEMA public TO PUBLIC;
--- atau:
-ALTER DATABASE gachapull OWNER TO gachapull_user;
-GRANT ALL ON SCHEMA public TO gachapull_user;
-```
-
-Kemudian import ulang:
-
-```bash
-psql -U postgres -d gachapull -f gachapull_database.sql
-```
+> Jika nama user PostgreSQL Anda **bukan** `gachapull_user`, edit bagian akhir file `gachapull_database.sql` dan ganti `gachapull_user` dengan nama user Anda, lalu jalankan ulang perintah import.
 
 File ini berisi:
 - Semua tabel (users, cards, packs, gacha_pulls, user_collection, dll)
