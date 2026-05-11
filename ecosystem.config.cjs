@@ -11,6 +11,7 @@ module.exports = {
       cwd: "/var/www/gachapull",
       instances: 1,
       exec_mode: "fork",
+      env_file: "/var/www/gachapull/.env",
       env: {
         NODE_ENV: "production",
         PORT: 8080,
