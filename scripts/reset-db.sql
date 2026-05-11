@@ -4,6 +4,7 @@
 -- ============================================================
 
 -- Drop semua tabel (urutan terbalik karena foreign key)
+-- Tabel baru
 DROP TABLE IF EXISTS physical_card_requests CASCADE;
 DROP TABLE IF EXISTS card_buybacks CASCADE;
 DROP TABLE IF EXISTS balance_transactions CASCADE;
@@ -16,6 +17,12 @@ DROP TABLE IF EXISTS packs CASCADE;
 DROP TABLE IF EXISTS cards CASCADE;
 DROP TABLE IF EXISTS user_balance CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+-- Tabel lama (coins/USD era) — drop juga agar bersih
+DROP TABLE IF EXISTS coin_transactions CASCADE;
+DROP TABLE IF EXISTS coin_packages CASCADE;
+DROP TABLE IF EXISTS payment_orders CASCADE;
+DROP TABLE IF EXISTS payment_transactions CASCADE;
+DROP TABLE IF EXISTS user_coins CASCADE;
 
 -- Drop enum types lama (semua kemungkinan nama)
 DROP TYPE IF EXISTS franchise CASCADE;
