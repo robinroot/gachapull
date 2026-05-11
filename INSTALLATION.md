@@ -67,10 +67,29 @@ GRANT ALL PRIVILEGES ON DATABASE gachapull TO gachapull_user;
 
 ### 3b. Import Schema + Data Awal
 
-File `gachapull_database.sql` sudah disertakan dalam paket ini. Import dengan:
+File `gachapull_database.sql` sudah disertakan dalam paket ini.
+
+> **Penting:** Import **harus dilakukan sebagai superuser PostgreSQL** (`postgres`), bukan sebagai user biasa, agar bisa membuat tabel di schema `public`.
 
 ```bash
-psql -U gachapull_user -d gachapull -f gachapull_database.sql
+# Import sebagai superuser postgres (WAJIB)
+psql -U postgres -d gachapull -f gachapull_database.sql
+```
+
+Jika muncul error `permission denied for schema public`, jalankan dulu perintah ini sebagai superuser:
+
+```sql
+-- Jalankan sebagai postgres superuser
+GRANT ALL ON SCHEMA public TO PUBLIC;
+-- atau:
+ALTER DATABASE gachapull OWNER TO gachapull_user;
+GRANT ALL ON SCHEMA public TO gachapull_user;
+```
+
+Kemudian import ulang:
+
+```bash
+psql -U postgres -d gachapull -f gachapull_database.sql
 ```
 
 File ini berisi:
