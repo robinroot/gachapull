@@ -32,7 +32,7 @@ type PullState = "idle" | "pulling" | "reveal";
 export default function GachaPage() {
   const { packId } = useParams<{ packId: string }>();
   const [, setLocation] = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, refetchUser } = useAuth();
   const { data: pack } = useGetPack(Number(packId));
   const pullMutation = useGachaPull();
   useTitle(pack?.name ? `Pull - ${pack.name}` : "Pull");
@@ -69,6 +69,7 @@ export default function GachaPage() {
       setCards(flatCards);
       setFlipped(new Array(flatCards.length).fill(false));
       setCurrentCardIndex(0);
+      refetchUser();
       setTimeout(() => setPullState("reveal"), 600);
     } catch (err: unknown) {
       const error = err as { data?: { error?: string; message?: string }; message?: string };

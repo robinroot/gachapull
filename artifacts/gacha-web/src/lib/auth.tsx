@@ -7,6 +7,7 @@ interface AuthContextType {
   login: (token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  refetchUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -14,10 +15,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("gacha_token"));
 
-  const { data: user, isLoading: isUserLoading, isFetching: isUserFetching, refetch } = useGetMe({
+  const { data: user, isLoading: isUserLoading, isFetching: isUserFetching, refetch, error } = useGetMe({
     query: {
       enabled: !!token,
-      retry: false,
+      retry: 1,
+      staleTime: 2 * 60 * 1000,
     },
   });
 
@@ -29,6 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
+  // Only logout on explicit 401 — not transient network errors
+  useEffect(() => {
+    if (error) {
+      const status = (error as any)?.status ?? (error as any)?.response?.status;
+      if (status === 401) {
+        setToken(null);
+      }
+    }
+  }, [error]);
+
   const login = (newToken: string) => {
     localStorage.setItem("gacha_token", newToken);
     setToken(newToken);
@@ -39,14 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   };
 
+  const isLoading = (isUserLoading || isUserFetching) && !!token;
+
   return (
     <AuthContext.Provider
       value={{
         user: user || null,
-        isLoading: (isUserLoading || isUserFetching) && !!token,
+        isLoading,
         login,
         logout,
         isAuthenticated: !!user,
+        refetchUser: refetch,
       }}
     >
       {children}
