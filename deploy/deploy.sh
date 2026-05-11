@@ -24,10 +24,15 @@ BRANCH="main"
 # =============================================
 # 1. Clone atau update repo
 # =============================================
+
+# Fix git "dubious ownership" saat script dijalankan sebagai root
+git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+
 if [ "$FRESH" = true ] || [ ! -d "$APP_DIR/.git" ]; then
   log "Clone repository..."
   rm -rf "$APP_DIR"
   git clone --depth=1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+  git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
   ok "Repository di-clone ke $APP_DIR"
 else
   log "Update repository..."
