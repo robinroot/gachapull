@@ -91,7 +91,8 @@ router.post("/packs", requireAdmin, async (req, res) => {
     res.status(201).json(formatPack(pack, 0));
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to create pack" });
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: "Failed to create pack", detail: msg });
   }
 });
 
