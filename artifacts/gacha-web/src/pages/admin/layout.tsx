@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     try {
-      await logoutMutation.mutateAsync({});
+      await logoutMutation.mutateAsync();
       logout();
       setLocation("/");
       toast.success("Berhasil keluar");
