@@ -14,7 +14,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("gacha_token"));
 
-  const { data: user, isLoading: isUserLoading, refetch } = useGetMe({
+  const { data: user, isLoading: isUserLoading, isFetching: isUserFetching, refetch } = useGetMe({
     query: {
       enabled: !!token,
       retry: false,
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user: user || null,
-        isLoading: isUserLoading && !!token,
+        isLoading: (isUserLoading || isUserFetching) && !!token,
         login,
         logout,
         isAuthenticated: !!user,
