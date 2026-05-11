@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useTitle, formatIdr } from "@/lib/helpers";
 import { Layout } from "@/components/layout";
@@ -7,43 +7,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Wallet, TrendingUp, History, CheckCircle2, Loader2, Smartphone, QrCode } from "lucide-react";
+import {
+  Wallet, TrendingUp, History, CheckCircle2, Loader2,
+  Smartphone, QrCode, Building2, ExternalLink, RefreshCw,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 const TOPUP_PACKAGES = [
-  { id: 1, name: "Starter", amountIdr: 10000 },
-  { id: 2, name: "Basic", amountIdr: 25000 },
-  { id: 3, name: "Value", amountIdr: 50000, isPopular: true },
-  { id: 4, name: "Pro", amountIdr: 100000 },
-  { id: 5, name: "Elite", amountIdr: 200000 },
+  { id: 1, name: "Starter",   amountIdr: 10000  },
+  { id: 2, name: "Basic",     amountIdr: 25000  },
+  { id: 3, name: "Value",     amountIdr: 50000,  isPopular: true },
+  { id: 4, name: "Pro",       amountIdr: 100000 },
+  { id: 5, name: "Elite",     amountIdr: 200000 },
   { id: 6, name: "Legendary", amountIdr: 500000 },
 ];
 
 const PAYMENT_METHODS = [
-  { id: "qris", label: "QRIS", icon: QrCode, desc: "Scan QR untuk bayar" },
-  { id: "gopay", label: "GoPay", icon: Smartphone, desc: "Bayar via GoPay" },
-  { id: "ovo", label: "OVO", icon: Smartphone, desc: "Bayar via OVO" },
-  { id: "dana", label: "DANA", icon: Smartphone, desc: "Bayar via DANA" },
+  { id: "qris",      label: "QRIS",       icon: QrCode,    desc: "Semua e-wallet" },
+  { id: "gopay",     label: "GoPay",      icon: Smartphone, desc: "Bayar via GoPay" },
+  { id: "ovo",       label: "OVO",        icon: Smartphone, desc: "Bayar via OVO" },
+  { id: "dana",      label: "DANA",       icon: Smartphone, desc: "Bayar via DANA" },
+  { id: "shopeepay", label: "ShopeePay",  icon: Smartphone, desc: "Bayar via ShopeePay" },
+  { id: "bca",       label: "Transfer BCA",     icon: Building2,  desc: "Virtual Account BCA" },
+  { id: "bni",       label: "Transfer BNI",     icon: Building2,  desc: "Virtual Account BNI" },
+  { id: "bri",       label: "Transfer BRI",     icon: Building2,  desc: "Virtual Account BRI" },
+  { id: "mandiri",   label: "Transfer Mandiri", icon: Building2,  desc: "Virtual Account Mandiri" },
 ];
 
-type Transaction = {
-  id: number;
-  amountIdr: number;
-  type: string;
-  description: string;
-  createdAt: string;
-};
-
-type WalletData = {
-  balanceIdr: number;
-  totalTopup: number;
-  totalSpent: number;
-};
+type Transaction = { id: number; amountIdr: number; type: string; description: string; createdAt: string };
+type WalletData  = { balanceIdr: number; totalTopup: number; totalSpent: number };
 
 export default function WalletPage() {
   useTitle("Saldo & Top-up");
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
@@ -54,38 +52,65 @@ export default function WalletPage() {
 
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>("qris");
-  const [topupStep, setTopupStep] = useState<"select" | "confirm" | "paying" | "done">("select");
+  const [topupStep, setTopupStep] = useState<"select" | "confirm" | "paying" | "redirect" | "done">("select");
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+
+  const getToken = () => localStorage.getItem("gacha_token") || "";
 
   useEffect(() => {
     if (!isAuthenticated) { setLocation("/login"); return; }
     fetchWallet();
     fetchTransactions();
-  }, [isAuthenticated]);
 
-  const getToken = () => localStorage.getItem("gacha_token") || "";
+    // Handle return from Duitku payment
+    const params = new URLSearchParams(search);
+    const status = params.get("status");
+    const orderId = params.get("orderId");
+    if (status === "success" && orderId) {
+      checkOrderStatus(parseInt(orderId));
+    }
+  }, [isAuthenticated]);
 
   async function fetchWallet() {
     setIsLoadingWallet(true);
     try {
       const res = await fetch("/api/wallet", { headers: { Authorization: `Bearer ${getToken()}` } });
       if (res.ok) setWallet(await res.json());
-    } finally {
-      setIsLoadingWallet(false);
-    }
+    } finally { setIsLoadingWallet(false); }
   }
 
   async function fetchTransactions() {
     setIsLoadingTx(true);
     try {
       const res = await fetch("/api/wallet/transactions?limit=10", { headers: { Authorization: `Bearer ${getToken()}` } });
-      if (res.ok) {
-        const data = await res.json();
-        setTransactions(data.transactions || []);
+      if (res.ok) setTransactions((await res.json()).transactions || []);
+    } finally { setIsLoadingTx(false); }
+  }
+
+  async function checkOrderStatus(orderId: number) {
+    setIsCheckingStatus(true);
+    try {
+      const res = await fetch(`/api/wallet/topup/${orderId}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === "completed") {
+        toast.success(`Top-up ${formatIdr(data.amountIdr)} berhasil!`);
+        setTopupStep("done");
+        await fetchWallet();
+        await fetchTransactions();
+        queryClient.invalidateQueries();
+      } else {
+        toast.info("Pembayaran belum terkonfirmasi. Refresh jika sudah bayar.");
+        setTopupStep("select");
       }
     } finally {
-      setIsLoadingTx(false);
+      setIsCheckingStatus(false);
+      // Clean URL
+      window.history.replaceState({}, "", "/wallet");
     }
   }
 
@@ -102,14 +127,42 @@ export default function WalletPage() {
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Gagal membuat order"); return; }
+
       setPendingOrderId(data.orderId);
-      setTopupStep("paying");
-    } finally {
-      setIsSubmitting(false);
-    }
+
+      if (data.mode === "duitku" && data.paymentUrl) {
+        setPaymentUrl(data.paymentUrl);
+        setTopupStep("redirect");
+      } else {
+        setIsDemoMode(true);
+        setTopupStep("paying");
+      }
+    } finally { setIsSubmitting(false); }
   }
 
-  async function handleConfirmPayment() {
+  function handleOpenPayment() {
+    if (paymentUrl) window.open(paymentUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function handleCheckAfterPayment() {
+    if (!pendingOrderId) return;
+    setIsCheckingStatus(true);
+    try {
+      const res = await fetch(`/api/wallet/topup/${pendingOrderId}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const data = await res.json();
+      if (data.status === "completed") {
+        toast.success("Pembayaran terkonfirmasi! Saldo sudah ditambahkan.");
+        setTopupStep("done");
+        await fetchWallet();
+        await fetchTransactions();
+        queryClient.invalidateQueries();
+      } else {
+        toast.info("Pembayaran belum terkonfirmasi oleh Duitku. Coba lagi beberapa saat.");
+      }
+    } finally { setIsCheckingStatus(false); }
+  }
+
+  async function handleDemoConfirm() {
     if (!pendingOrderId) return;
     setIsSubmitting(true);
     try {
@@ -124,22 +177,22 @@ export default function WalletPage() {
       await fetchWallet();
       await fetchTransactions();
       queryClient.invalidateQueries();
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   }
 
   function handleReset() {
     setTopupStep("select");
     setSelectedPackage(null);
     setPendingOrderId(null);
+    setPaymentUrl(null);
+    setIsDemoMode(false);
   }
 
   const txTypeLabel: Record<string, { label: string; color: string }> = {
-    topup: { label: "Top-up", color: "text-green-500" },
-    gacha_pull: { label: "Pull", color: "text-red-400" },
-    buyback: { label: "Buyback", color: "text-blue-400" },
-    refund: { label: "Refund", color: "text-green-400" },
+    topup:      { label: "Top-up",     color: "text-green-500" },
+    gacha_pull: { label: "Pull",       color: "text-red-400"   },
+    buyback:    { label: "Buyback",    color: "text-blue-400"  },
+    refund:     { label: "Refund",     color: "text-green-400" },
     adjustment: { label: "Adjustment", color: "text-yellow-400" },
   };
 
@@ -151,6 +204,7 @@ export default function WalletPage() {
           <p className="text-muted-foreground mt-1">Kelola saldo dan isi ulang untuk pull kartu</p>
         </div>
 
+        {/* Balance cards */}
         <div className="grid md:grid-cols-3 gap-4 mb-10">
           {isLoadingWallet ? (
             [...Array(3)].map((_, i) => <div key={i} className="h-28 rounded-xl border border-border bg-card animate-pulse" />)
@@ -159,8 +213,7 @@ export default function WalletPage() {
               <Card className="bg-card border-primary/30 shadow-[0_0_20px_hsla(43,96%,58%,0.1)]">
                 <CardHeader className="pb-1 pt-4 px-4">
                   <CardTitle className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Wallet className="w-3.5 h-3.5" />
-                    Saldo Saat Ini
+                    <Wallet className="w-3.5 h-3.5" /> Saldo Saat Ini
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4 px-4">
@@ -170,8 +223,7 @@ export default function WalletPage() {
               <Card className="bg-card border-border">
                 <CardHeader className="pb-1 pt-4 px-4">
                   <CardTitle className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    Total Top-up
+                    <TrendingUp className="w-3.5 h-3.5" /> Total Top-up
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4 px-4">
@@ -181,8 +233,7 @@ export default function WalletPage() {
               <Card className="bg-card border-border">
                 <CardHeader className="pb-1 pt-4 px-4">
                   <CardTitle className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <History className="w-3.5 h-3.5" />
-                    Total Spent
+                    <History className="w-3.5 h-3.5" /> Total Spent
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4 px-4">
@@ -199,6 +250,8 @@ export default function WalletPage() {
             <h2 className="text-xl font-display font-bold mb-4">Top-up Saldo</h2>
             <Card className="bg-card border-border">
               <CardContent className="p-6">
+
+                {/* STEP: select */}
                 {topupStep === "select" && (
                   <div className="space-y-6">
                     <div>
@@ -216,9 +269,7 @@ export default function WalletPage() {
                             )}
                           >
                             {(pkg as any).isPopular && (
-                              <Badge className="absolute -top-2 -right-2 text-[9px] px-1.5 bg-primary text-primary-foreground">
-                                Populer
-                              </Badge>
+                              <Badge className="absolute -top-2 -right-2 text-[9px] px-1.5 bg-primary text-primary-foreground">Populer</Badge>
                             )}
                             <p className="font-bold text-sm">{pkg.name}</p>
                             <p className="text-primary font-mono font-bold text-sm">{formatIdr(pkg.amountIdr)}</p>
@@ -229,7 +280,7 @@ export default function WalletPage() {
 
                     <div>
                       <p className="text-sm font-medium mb-3 text-muted-foreground">Metode pembayaran</p>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                         {PAYMENT_METHODS.map(method => {
                           const Icon = method.icon;
                           return (
@@ -237,16 +288,16 @@ export default function WalletPage() {
                               key={method.id}
                               onClick={() => setSelectedMethod(method.id)}
                               className={cn(
-                                "p-3 rounded-xl border-2 text-left transition-all duration-200 flex items-center gap-2",
+                                "p-2.5 rounded-xl border-2 text-left transition-all duration-200 flex items-center gap-2",
                                 selectedMethod === method.id
                                   ? "border-primary bg-primary/10"
                                   : "border-border hover:border-primary/50"
                               )}
                             >
                               <Icon className="w-4 h-4 text-primary shrink-0" />
-                              <div>
-                                <p className="font-bold text-sm">{method.label}</p>
-                                <p className="text-xs text-muted-foreground">{method.desc}</p>
+                              <div className="min-w-0">
+                                <p className="font-bold text-xs truncate">{method.label}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{method.desc}</p>
                               </div>
                             </button>
                           );
@@ -264,6 +315,7 @@ export default function WalletPage() {
                   </div>
                 )}
 
+                {/* STEP: confirm */}
                 {topupStep === "confirm" && selectedPkg && (
                   <div className="space-y-6">
                     <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
@@ -273,22 +325,15 @@ export default function WalletPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Metode</span>
-                        <span className="font-bold uppercase">{selectedMethod}</span>
+                        <span className="font-bold">{PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label || selectedMethod}</span>
                       </div>
                       <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
                         <span className="text-muted-foreground font-medium">Total</span>
                         <span className="font-bold text-primary">{formatIdr(selectedPkg.amountIdr)}</span>
                       </div>
                     </div>
-
-                    <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-400">
-                      Ini adalah demo UI Midtrans. Pembayaran akan disimulasikan.
-                    </div>
-
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={() => setTopupStep("select")}>
-                        Batal
-                      </Button>
+                      <Button variant="outline" className="flex-1" onClick={() => setTopupStep("select")}>Batal</Button>
                       <Button
                         className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-bold"
                         disabled={isSubmitting}
@@ -301,40 +346,79 @@ export default function WalletPage() {
                   </div>
                 )}
 
-                {topupStep === "paying" && selectedPkg && (
+                {/* STEP: redirect (Duitku real payment) */}
+                {topupStep === "redirect" && selectedPkg && (
                   <div className="space-y-6 text-center">
-                    <div className="w-32 h-32 rounded-2xl border-2 border-primary/30 bg-secondary/50 mx-auto flex items-center justify-center">
-                      {selectedMethod === "qris"
-                        ? <QrCode className="w-16 h-16 text-primary/50" />
-                        : <Smartphone className="w-16 h-16 text-primary/50" />}
+                    <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 mx-auto flex items-center justify-center">
+                      <ExternalLink className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <p className="font-bold text-lg">{formatIdr(selectedPkg.amountIdr)}</p>
+                      <h3 className="text-lg font-bold font-display">Lanjutkan Pembayaran</h3>
                       <p className="text-muted-foreground text-sm mt-1">
-                        {selectedMethod === "qris"
-                          ? "Scan QR code dengan aplikasi e-wallet kamu"
-                          : `Buka aplikasi ${selectedMethod.toUpperCase()} dan selesaikan pembayaran`}
+                        Klik tombol di bawah untuk membuka halaman pembayaran Duitku
                       </p>
                     </div>
-                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-xs text-blue-400">
-                      Demo: Klik tombol di bawah untuk simulasikan pembayaran berhasil
+                    <div className="p-3 rounded-lg bg-secondary/50 border border-border text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Nominal</span>
+                        <span className="font-bold text-primary">{formatIdr(selectedPkg.amountIdr)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Metode</span>
+                        <span className="font-medium">{PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label}</span>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold"
+                      onClick={handleOpenPayment}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Buka Halaman Duitku
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={isCheckingStatus}
+                      onClick={handleCheckAfterPayment}
+                    >
+                      {isCheckingStatus
+                        ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Mengecek...</>
+                        : <><RefreshCw className="w-4 h-4 mr-2" />Saya Sudah Bayar — Cek Status</>}
+                    </Button>
+                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-foreground underline">
+                      Batal
+                    </button>
+                  </div>
+                )}
+
+                {/* STEP: paying (Demo mode) */}
+                {topupStep === "paying" && selectedPkg && isDemoMode && (
+                  <div className="space-y-6 text-center">
+                    <div className="w-16 h-16 rounded-full bg-yellow-500/20 border border-yellow-500/30 mx-auto flex items-center justify-center">
+                      <QrCode className="w-8 h-8 text-yellow-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold font-display">Demo Mode</h3>
+                      <p className="text-muted-foreground text-sm mt-1">{formatIdr(selectedPkg.amountIdr)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-400">
+                      Duitku belum dikonfigurasi di admin settings. Gunakan tombol di bawah untuk simulasi pembayaran.
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={handleReset}>
-                        Batal
-                      </Button>
+                      <Button variant="outline" className="flex-1" onClick={handleReset}>Batal</Button>
                       <Button
                         className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold"
                         disabled={isSubmitting}
-                        onClick={handleConfirmPayment}
+                        onClick={handleDemoConfirm}
                       >
                         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                        Konfirmasi Bayar
+                        Simulasi Bayar
                       </Button>
                     </div>
                   </div>
                 )}
 
+                {/* STEP: done */}
                 {topupStep === "done" && selectedPkg && (
                   <div className="text-center space-y-6 py-4">
                     <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 mx-auto flex items-center justify-center">
@@ -362,9 +446,7 @@ export default function WalletPage() {
               <CardContent className="p-4">
                 {isLoadingTx ? (
                   <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-12 rounded-lg bg-secondary/50 animate-pulse" />
-                    ))}
+                    {[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-secondary/50 animate-pulse" />)}
                   </div>
                 ) : transactions.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Belum ada transaksi</p>

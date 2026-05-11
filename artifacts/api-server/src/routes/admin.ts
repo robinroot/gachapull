@@ -179,11 +179,11 @@ router.get("/admin/settings", requireAdmin, async (req, res) => {
     for (const s of settings) map[s.key] = s.value;
 
     res.json({
-      midtrans: {
-        serverKey: map["midtrans_server_key"] ? "***" : "",
-        clientKey: map["midtrans_client_key"] || "",
-        isProduction: map["midtrans_is_production"] === "true",
-        enabled: map["midtrans_enabled"] === "true",
+      duitku: {
+        merchantCode: map["duitku_merchant_code"] || "",
+        apiKey: map["duitku_api_key"] ? "***" : "",
+        isProduction: map["duitku_is_production"] === "true",
+        enabled: map["duitku_enabled"] === "true",
       },
     });
   } catch (err) {
@@ -193,14 +193,14 @@ router.get("/admin/settings", requireAdmin, async (req, res) => {
 });
 
 router.put("/admin/settings", requireAdmin, async (req, res) => {
-  const { midtrans } = req.body;
+  const { duitku } = req.body;
   try {
     const updates: { key: string; value: string }[] = [];
-    if (midtrans) {
-      if (midtrans.serverKey && midtrans.serverKey !== "***") updates.push({ key: "midtrans_server_key", value: midtrans.serverKey });
-      if (midtrans.clientKey !== undefined) updates.push({ key: "midtrans_client_key", value: midtrans.clientKey });
-      if (midtrans.isProduction !== undefined) updates.push({ key: "midtrans_is_production", value: String(midtrans.isProduction) });
-      if (midtrans.enabled !== undefined) updates.push({ key: "midtrans_enabled", value: String(midtrans.enabled) });
+    if (duitku) {
+      if (duitku.merchantCode !== undefined) updates.push({ key: "duitku_merchant_code", value: duitku.merchantCode });
+      if (duitku.apiKey && duitku.apiKey !== "***") updates.push({ key: "duitku_api_key", value: duitku.apiKey });
+      if (duitku.isProduction !== undefined) updates.push({ key: "duitku_is_production", value: String(duitku.isProduction) });
+      if (duitku.enabled !== undefined) updates.push({ key: "duitku_enabled", value: String(duitku.enabled) });
     }
     for (const u of updates) {
       await db.insert(paymentSettingsTable).values({ key: u.key, value: u.value })
