@@ -71,7 +71,7 @@ set -a; source .env; set +a
 # 3. Install dependencies
 # =============================================
 log "Install dependencies..."
-pnpm install --frozen-lockfile
+pnpm install --no-frozen-lockfile
 ok "Dependencies terinstall"
 
 # =============================================
