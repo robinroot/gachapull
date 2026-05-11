@@ -118,10 +118,22 @@ router.get("/admin/users/:userId", requireAdmin, async (req, res) => {
   }
 });
 
+const VALID_ROLES = ["user", "admin"] as const;
+
 router.put("/admin/users/:userId", requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.userId);
   if (isNaN(userId)) { res.status(400).json({ error: "Invalid user ID" }); return; }
   const { role, balanceIdr } = req.body;
+
+  // Validate role to prevent arbitrary role escalation
+  if (role !== undefined && !VALID_ROLES.includes(role)) {
+    res.status(400).json({ error: `Invalid role. Allowed: ${VALID_ROLES.join(", ")}` }); return;
+  }
+  // Validate balanceIdr is a non-negative number
+  if (balanceIdr !== undefined && (typeof balanceIdr !== "number" || balanceIdr < 0 || !Number.isFinite(balanceIdr))) {
+    res.status(400).json({ error: "balanceIdr must be a non-negative number" }); return;
+  }
+
   try {
     if (role) await db.update(usersTable).set({ role, updatedAt: new Date() }).where(eq(usersTable.id, userId));
     if (balanceIdr !== undefined) {

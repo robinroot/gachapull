@@ -90,10 +90,8 @@ router.post("/packs", requireAdmin, async (req, res) => {
     const [pack] = await db.insert(packsTable).values({ name, franchise, priceIdr, imageUrl, description, isActive: isActive ?? true }).returning();
     res.status(201).json(formatPack(pack, 0));
   } catch (err) {
-    req.log.error(err);
-    const msg = err instanceof Error ? err.message : String(err);
-    const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
-    res.status(500).json({ error: "Failed to create pack", detail: msg, cause });
+    req.log.error(err, "Failed to create pack");
+    res.status(500).json({ error: "Failed to create pack" });
   }
 });
 

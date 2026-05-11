@@ -3,6 +3,10 @@ import { db, userBalanceTable, balanceTransactionsTable, topupOrdersTable, users
 import { eq, desc, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { getDuitkuConfig, createDuitkuInvoice, verifyCallbackSignature, DUITKU_METHODS } from "../lib/duitku";
+import { topupLimiter } from "../middlewares/rate-limit";
+import { logger } from "../lib/logger";
+
+const MAX_TOPUP_IDR = 10_000_000; // Rp 10 juta per transaksi
 
 const router = Router();
 
@@ -82,10 +86,13 @@ router.get("/wallet/topup/:orderId", requireAuth, async (req, res) => {
 });
 
 // POST topup — real Duitku or demo fallback
-router.post("/wallet/topup", requireAuth, async (req, res) => {
+router.post("/wallet/topup", requireAuth, topupLimiter, async (req, res) => {
   const { amountIdr, method } = req.body;
   if (!amountIdr || typeof amountIdr !== "number" || amountIdr < 1000) {
     res.status(400).json({ error: "Jumlah top-up tidak valid (minimal Rp 1.000)" }); return;
+  }
+  if (amountIdr > MAX_TOPUP_IDR) {
+    res.status(400).json({ error: `Jumlah top-up melebihi batas maksimum (Rp ${MAX_TOPUP_IDR.toLocaleString("id-ID")})` }); return;
   }
 
   const userId = req.user!.userId;
@@ -214,7 +221,7 @@ router.post("/wallet/duitku/callback", async (req, res) => {
 
     res.status(200).send("OK");
   } catch (err) {
-    console.error("Duitku callback error:", err);
+    logger.error({ err }, "Duitku callback error");
     res.status(500).send("Internal error");
   }
 });

@@ -1,7 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { logger } from "../lib/logger";
 
-const JWT_SECRET = process.env.JWT_SECRET || "gachapull-secret-key-change-in-production";
+const DEFAULT_SECRET = "gachapull-secret-key-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_SECRET;
+
+if (process.env.NODE_ENV === "production" && JWT_SECRET === DEFAULT_SECRET) {
+  logger.error("FATAL: JWT_SECRET is using the insecure default value in production. Set the JWT_SECRET environment variable.");
+  process.exit(1);
+}
 
 export interface AuthPayload {
   userId: number;

@@ -4,6 +4,7 @@ import { db, usersTable, userBalanceTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, signToken } from "../middlewares/auth";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
+import { authLimiter } from "../middlewares/rate-limit";
 
 const router = Router();
 
@@ -19,7 +20,8 @@ function formatUser(user: typeof usersTable.$inferSelect, balanceIdr = 0) {
   };
 }
 
-router.post("/auth/register", async (req, res) => {
+// Rate-limited registration
+router.post("/auth/register", authLimiter, async (req, res) => {
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Validation error", message: parsed.error.message });
@@ -43,15 +45,20 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+// Rate-limited login — timing-safe (always compare hash to prevent user enumeration)
+router.post("/auth/login", authLimiter, async (req, res) => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Validation error" }); return; }
   const { email, password } = parsed.data;
   try {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-    if (!user) { res.status(401).json({ error: "Email atau password salah" }); return; }
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) { res.status(401).json({ error: "Email atau password salah" }); return; }
+    // Always run bcrypt.compare to prevent timing-based user enumeration
+    const dummyHash = "$2b$12$invalidsaltthatnevermatchesXXXXXXXXXXXXXXXXXXXXXXXXXX";
+    const valid = user ? await bcrypt.compare(password, user.passwordHash) : await bcrypt.compare(password, dummyHash).then(() => false);
+    if (!user || !valid) {
+      res.status(401).json({ error: "Email atau password salah" });
+      return;
+    }
     const [balance] = await db.select().from(userBalanceTable).where(eq(userBalanceTable.userId, user.id)).limit(1);
     const token = signToken({ userId: user.id, role: user.role });
     res.json({ user: formatUser(user, balance?.balanceIdr ?? 0), token });

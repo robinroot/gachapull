@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { requireAuth } from "../middlewares/auth";
+import { requireAdmin } from "../middlewares/auth";
 
 const uploadsDir = path.resolve(process.cwd(), "uploads");
 
@@ -13,7 +13,8 @@ if (!fs.existsSync(uploadsDir)) {
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    // Strip any path traversal from the original filename
+    const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, "");
     const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
     cb(null, unique);
   },
@@ -21,7 +22,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (allowed.includes(file.mimetype)) {
@@ -34,7 +35,8 @@ const upload = multer({
 
 const router = Router();
 
-router.post("/upload", requireAuth, upload.single("image"), (req, res) => {
+// Admin-only: only admins can upload card/pack images
+router.post("/upload", requireAdmin, upload.single("image"), (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "Tidak ada file yang diupload" });
     return;
