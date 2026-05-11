@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, userBalanceTable, topupOrdersTable, gachaPullsTable, cardsTable, packsTable, paymentSettingsTable, physicalCardRequestsTable } from "@workspace/db";
+import { db, usersTable, userBalanceTable, topupOrdersTable, gachaPullsTable, cardsTable, packsTable, paymentSettingsTable, siteSettingsTable, physicalCardRequestsTable } from "@workspace/db";
 import { eq, desc, sql, ilike, and } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 import { ListAdminUsersQueryParams, ListAdminTransactionsQueryParams } from "@workspace/api-zod";
@@ -222,6 +222,51 @@ router.put("/admin/settings", requireAdmin, async (req, res) => {
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to update settings" });
+  }
+});
+
+// SITE SETTINGS
+router.get("/admin/site-settings", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.select().from(siteSettingsTable);
+    const map: Record<string, string> = {};
+    for (const s of rows) map[s.key] = s.value;
+    res.json({
+      siteName: map["site_name"] || "GachaPull",
+      siteTagline: map["site_tagline"] || "Pokemon & One Piece",
+      faviconUrl: map["favicon_url"] || "",
+      metaDescription: map["meta_description"] || "",
+      metaKeywords: map["meta_keywords"] || "",
+      ogTitle: map["og_title"] || "",
+      ogDescription: map["og_description"] || "",
+      ogImageUrl: map["og_image_url"] || "",
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to fetch site settings" });
+  }
+});
+
+router.put("/admin/site-settings", requireAdmin, async (req, res) => {
+  const { siteName, siteTagline, faviconUrl, metaDescription, metaKeywords, ogTitle, ogDescription, ogImageUrl } = req.body;
+  try {
+    const updates: { key: string; value: string }[] = [];
+    if (siteName !== undefined) updates.push({ key: "site_name", value: siteName });
+    if (siteTagline !== undefined) updates.push({ key: "site_tagline", value: siteTagline });
+    if (faviconUrl !== undefined) updates.push({ key: "favicon_url", value: faviconUrl });
+    if (metaDescription !== undefined) updates.push({ key: "meta_description", value: metaDescription });
+    if (metaKeywords !== undefined) updates.push({ key: "meta_keywords", value: metaKeywords });
+    if (ogTitle !== undefined) updates.push({ key: "og_title", value: ogTitle });
+    if (ogDescription !== undefined) updates.push({ key: "og_description", value: ogDescription });
+    if (ogImageUrl !== undefined) updates.push({ key: "og_image_url", value: ogImageUrl });
+    for (const u of updates) {
+      await db.insert(siteSettingsTable).values({ key: u.key, value: u.value })
+        .onConflictDoUpdate({ target: siteSettingsTable.key, set: { value: u.value, updatedAt: new Date() } });
+    }
+    res.json({ message: "Site settings updated" });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to update site settings" });
   }
 });
 

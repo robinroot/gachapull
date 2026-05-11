@@ -1,9 +1,11 @@
 import { useEffect } from "react";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export function useTitle(title: string) {
+  const { settings } = useSiteSettings();
   useEffect(() => {
-    document.title = `${title} | GachaPull`;
-  }, [title]);
+    document.title = `${title} | ${settings.siteName}`;
+  }, [title, settings.siteName]);
 }
 
 export function formatIdr(amount: number) {

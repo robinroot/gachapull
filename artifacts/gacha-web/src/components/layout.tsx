@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useLogout } from "@workspace/api-client-react";
 import { Wallet, User, LogOut, ShieldAlert, Sparkles, Package } from "lucide-react";
+import { useSiteSettings } from "@/lib/site-settings";
 import { formatIdr } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ const NAV_LINKS_AUTH = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const { settings } = useSiteSettings();
   const logoutMutation = useLogout();
 
   const handleLogout = async () => {
@@ -59,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Sparkles className="absolute -top-1 -right-1 w-2.5 h-2.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-float" />
               </div>
               <span className="font-display font-bold text-2xl tracking-tighter text-primary group-hover:drop-shadow-[0_0_12px_hsla(43,96%,58%,0.8)] transition-all duration-300">
-                GachaPull
+                {settings.siteName}
               </span>
             </Link>
 
@@ -181,8 +183,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 bg-grid opacity-50" />
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 relative">
           <div className="flex flex-col items-center md:items-start gap-1">
-            <span className="font-display font-bold text-xl text-primary">GachaPull</span>
-            <p className="text-sm text-muted-foreground">Koleksi kartu digital premium.</p>
+            <span className="font-display font-bold text-xl text-primary">{settings.siteName}</span>
+            <p className="text-sm text-muted-foreground">{settings.siteTagline || "Koleksi kartu digital premium."}</p>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="hover:text-primary transition-colors cursor-pointer">Syarat & Ketentuan</span>

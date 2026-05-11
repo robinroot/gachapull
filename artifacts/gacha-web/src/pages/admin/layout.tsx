@@ -14,11 +14,13 @@ import {
   Truck,
   LogOut,
   Home,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSiteSettings } from "@/lib/site-settings";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -27,12 +29,14 @@ const NAV_ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/transactions", label: "Transaksi", icon: Receipt },
   { href: "/admin/physical-requests", label: "Fisik Requests", icon: Truck },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/settings", label: "Payment Settings", icon: Settings },
+  { href: "/admin/site-settings", label: "Site Settings", icon: Globe },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { isAuthenticated, user, isLoading, logout } = useAuth();
+  const { settings } = useSiteSettings();
   const logoutMutation = useLogout();
 
   const handleLogout = async () => {
@@ -73,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 shrink-0 border-r border-border bg-card/50 flex flex-col">
         <div className="p-6 border-b border-border">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-display font-bold text-xl text-primary">GachaPull</span>
+            <span className="font-display font-bold text-xl text-primary">{settings.siteName}</span>
           </Link>
           <div className="flex items-center gap-2 mt-2">
             <ShieldAlert className="w-3.5 h-3.5 text-primary" />

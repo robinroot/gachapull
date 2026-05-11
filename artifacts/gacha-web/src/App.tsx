@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
+import { SiteSettingsProvider } from "@/lib/site-settings";
+import AdminSiteSettings from "@/pages/admin/site-settings";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
@@ -81,6 +83,11 @@ function Router() {
           <AdminSettings />
         </AdminLayout>
       </Route>
+      <Route path="/admin/site-settings">
+        <AdminLayout>
+          <AdminSiteSettings />
+        </AdminLayout>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -91,9 +98,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <AuthProvider>
-            <Router />
-          </AuthProvider>
+          <SiteSettingsProvider>
+            <AuthProvider>
+              <Router />
+            </AuthProvider>
+          </SiteSettingsProvider>
         </WouterRouter>
         <Toaster richColors position="top-right" closeButton />
       </TooltipProvider>
