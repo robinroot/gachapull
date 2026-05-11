@@ -24,3 +24,15 @@ id = "ZSGqj7NOlx-PHbgNe2C6j"
 uri = "file://gachapull-src.zip"
 type = "unspecified"
 title = "GachaPull — Source Code"
+
+[[outputs]]
+id = "rxuq0YZL0KcGBsxuwPDDz"
+uri = "file://gachapull_export.tar.gz"
+type = "unspecified"
+title = "GachaPull — Source Code + Database (tar.gz)"
+
+[[outputs]]
+id = "uW_7jEya6ZQ6_d_ciT0Jt"
+uri = "file://INSTALLATION.md"
+type = "text"
+title = "Panduan Instalasi & Deployment"
