@@ -55,9 +55,9 @@ export default function PacksPage() {
               return (
                 <div
                   key={pack.id}
-                  className="group relative rounded-xl border border-border bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_hsla(43,96%,58%,0.15)] overflow-hidden"
+                  className="group relative flex flex-col rounded-xl border border-border bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_hsla(43,96%,58%,0.15)] overflow-hidden"
                 >
-                  <div className="aspect-square overflow-hidden bg-secondary/30">
+                  <div className="aspect-square overflow-hidden bg-secondary/30 shrink-0">
                     <img
                       src={pack.imageUrl || ""}
                       alt={pack.name}
@@ -65,17 +65,15 @@ export default function PacksPage() {
                       onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/200x200/1a1a2e/FFD700?text=Pack"; }}
                     />
                   </div>
-                  <div className="p-5">
-                    <Badge variant="secondary" className="text-xs mb-2 capitalize">
+                  <div className="p-5 flex flex-col flex-1">
+                    <Badge variant="secondary" className="text-xs mb-2 capitalize w-fit">
                       {p.franchise === "onepiece" ? "One Piece" : "Pokemon"}
                     </Badge>
                     <h3 className="font-bold text-base mb-1">{pack.name}</h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{pack.description}</p>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-1.5 text-primary font-mono font-bold text-lg">
-                        <Wallet className="w-5 h-5" />
-                        {formatIdr(p.priceIdr || 0)}
-                      </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-4 flex-1">{pack.description}</p>
+                    <div className="flex items-center gap-1.5 text-primary font-mono font-bold text-lg mb-4">
+                      <Wallet className="w-5 h-5" />
+                      {formatIdr(p.priceIdr || 0)}
                     </div>
                     {isAuthenticated ? (
                       <Link href={`/gacha/${pack.id}`}>
