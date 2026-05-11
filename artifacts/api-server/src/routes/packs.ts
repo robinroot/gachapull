@@ -92,7 +92,8 @@ router.post("/packs", requireAdmin, async (req, res) => {
   } catch (err) {
     req.log.error(err);
     const msg = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: "Failed to create pack", detail: msg });
+    const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
+    res.status(500).json({ error: "Failed to create pack", detail: msg, cause });
   }
 });
 
